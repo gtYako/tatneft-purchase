@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load core_filters %}
+{% block title %}Ценовые предложения{% endblock %}
+{% block breadcrumb_items %}<li class="breadcrumb-item active">Ценовые предложения</li>{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+  <h1><i class="bi bi-currency-exchange me-2"></i>Ценовые предложения</h1>
+  {% if user.can_manage_suppliers %}
+  <a href="{% url 'quote_create' %}" class="btn btn-primary"><i class="bi bi-plus"></i> Добавить КП</a>
+  {% endif %}
+</div>
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Поиск...">
+      </div>
+      <div class="col-md-3">
+        <select name="material" class="form-select form-select-sm">
+          <option value="">Все материалы</option>
+          {% for m in materials %}
+          <option value="{{ m.pk }}" {% if mat_id|stringformat:"s" == m.pk|stringformat:"s" %}selected{% endif %}>{{ m.name|truncatechars:40 }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select name="supplier" class="form-select form-select-sm">
+          <option value="">Все поставщики</option>
+          {% for s in suppliers %}
+          <option value="{{ s.pk }}" {% if sup_id|stringformat:"s" == s.pk|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-sm btn-secondary">Найти</button>
+        <a href="{% url 'quote_list' %}" class="btn btn-sm btn-outline-secondary ms-1">✕</a>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Материал</th><th>Поставщик</th><th>Цена</th><th>Срок, дн.</th><th>Условия оплаты</th><th>Дата КП</th><th>Действ. до</th><th></th></tr></thead>
+      <tbody>
+        {% for q in quotes %}
+        <tr>
+          <td><a href="{% url 'material_detail' q.material.pk %}">{{ q.material.name|truncatechars:35 }}</a>
+              <div class="small text-muted"><code>{{ q.material.code }}</code></div></td>
+          <td><a href="{% url 'supplier_detail' q.supplier.pk %}">{{ q.supplier.name }}</a></td>
+          <td class="fw-bold">{{ q.price|rubles }}</td>
+          <td>{{ q.delivery_days }}</td>
+          <td class="small text-muted">{{ q.payment_terms|default:"—" }}</td>
+          <td>{{ q.quote_date|date:"d.m.Y" }}</td>
+          <td>{% if q.valid_until %}{{ q.valid_until|date:"d.m.Y" }}{% else %}—{% endif %}</td>
+          <td class="text-nowrap">
+            {% if user.can_manage_suppliers %}
+            <a href="{% url 'quote_update' q.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+            <form method="post" action="{% url 'quote_delete' q.pk %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-danger"
+                onclick="return confirm('Удалить КП от {{ q.supplier.name }}?')" title="Удалить">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted py-4">Предложений не найдено.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+  {% include 'partials/pagination.html' %}
+</div>
+{% endblock %}

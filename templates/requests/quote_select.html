@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+{% load core_filters %}
+{% block title %}Анализ рынка — {{ item.material.name }}{% endblock %}
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'request_list' %}">Заявки</a></li>
+<li class="breadcrumb-item"><a href="{% url 'request_detail' request.pk %}">{{ request.request_number }}</a></li>
+<li class="breadcrumb-item active">Анализ рынка</li>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-bar-chart me-2"></i>Анализ рынка: {{ item.material.name }}</h1>
+  <p class="text-muted">
+    Заявка {{ request.request_number }} · К закупке: <strong>{{ item.qty_to_purchase }} {{ item.material.unit }}</strong>
+    {% if request.criticality == 'emergency' %}
+      · <span class="badge bg-danger">Аварийная — приоритет: срок поставки</span>
+    {% else %}
+      · <span class="badge bg-primary">Плановая — приоритет: цена</span>
+    {% endif %}
+  </p>
+</div>
+
+<!-- Scoring weights info -->
+<div class="alert alert-info small mb-3">
+  <i class="bi bi-info-circle me-1"></i>
+  {% if request.criticality == 'emergency' %}
+    <strong>Аварийная заявка:</strong> Вес критериев — Цена: 20%, Срок поставки: 70%, Надёжность поставщика: 10%
+  {% else %}
+    <strong>Плановая заявка:</strong> Вес критериев — Цена: 60%, Срок поставки: 20%, Надёжность поставщика: 20%
+  {% endif %}
+  <br>Итоговый балл = сумма взвешенных нормализованных оценок (100 = лучший вариант)
+</div>
+
+{% if comparisons %}
+<div class="card mb-4">
+  <div class="card-header"><i class="bi bi-table me-2"></i>Сравнительная таблица предложений</div>
+  <div class="table-responsive">
+  <table class="table table-hover mb-0 align-middle">
+    <thead>
+      <tr>
+        <th>Поставщик</th>
+        <th>Рейтинг</th>
+        <th>Цена за ед.</th>
+        <th>Цена × кол-во</th>
+        <th>Срок, дн.</th>
+        <th>Балл (цена)</th>
+        <th>Балл (срок)</th>
+        <th>Балл (надёжн.)</th>
+        <th class="text-center">Итог. балл</th>
+        <th>Выбор</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in comparisons %}
+      <tr class="{% if c.is_recommended %}table-success{% elif c.is_selected %}table-primary{% endif %}">
+        <td>
+          <a href="{% url 'supplier_detail' c.quote.supplier.pk %}" class="text-decoration-none fw-semibold">
+            {{ c.quote.supplier.name }}
+          </a>
+          {% if c.is_recommended %}
+            <span class="badge bg-success ms-1"><i class="bi bi-star-fill"></i> Рекомендован</span>
+          {% endif %}
+          {% if c.is_selected %}
+            <span class="badge bg-primary ms-1">Выбран</span>
+          {% endif %}
+          {% if c.quote.payment_terms %}<div class="small text-muted">{{ c.quote.payment_terms }}</div>{% endif %}
+        </td>
+        <td>
+          <span class="badge bg-{{ c.quote.supplier.get_rating_color }}">{{ c.quote.supplier.rating }}/10</span>
+          <div class="small text-muted">{{ c.quote.supplier.delivery_reliability }}% надёжн.</div>
+        </td>
+        <td class="fw-bold">{{ c.quote.price|rubles }}</td>
+        <td>{{ c.quote.price|rubles }} × {{ item.qty_to_purchase }}</td>
+        <td>{{ c.quote.delivery_days }} дн.
+          {% if c.quote.valid_until %}
+          <div class="small text-muted">до {{ c.quote.valid_until|date:"d.m.Y" }}</div>
+          {% endif %}
+        </td>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <div class="progress flex-grow-1" style="height:6px">
+              <div class="progress-bar bg-success" style="width:{{ c.price_score }}%"></div>
+            </div>
+            <span class="small">{{ c.price_score }}%</span>
+          </div>
+        </td>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <div class="progress flex-grow-1" style="height:6px">
+              <div class="progress-bar bg-info" style="width:{{ c.delivery_score }}%"></div>
+            </div>
+            <span class="small">{{ c.delivery_score }}%</span>
+          </div>
+        </td>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <div class="progress flex-grow-1" style="height:6px">
+              <div class="progress-bar bg-warning" style="width:{{ c.reliability_score }}%"></div>
+            </div>
+            <span class="small">{{ c.reliability_score }}%</span>
+          </div>
+        </td>
+        <td class="text-center">
+          <span class="badge {% if c.is_recommended %}bg-success{% elif c.total_score >= 60 %}bg-primary{% else %}bg-secondary{% endif %} fs-6">
+            {{ c.total_score }}
+          </span>
+        </td>
+        <td>
+          {% if not c.is_selected %}
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="quote_id" value="{{ c.quote.pk }}">
+            <button type="submit" class="btn btn-sm {% if c.is_recommended %}btn-success{% else %}btn-outline-primary{% endif %}">
+              Выбрать
+            </button>
+          </form>
+          {% else %}
+          <span class="text-primary fw-bold">✓ Выбран</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- Justification form -->
+<div class="card" style="max-width: 600px">
+  <div class="card-header">Выбрать предложение с обоснованием</div>
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Предложение</label>
+        <select name="quote_id" class="form-select" required>
+          <option value="">— Выберите поставщика —</option>
+          {% for c in comparisons %}
+          <option value="{{ c.quote.pk }}" {% if c.is_selected %}selected{% endif %}>
+            {{ c.quote.supplier.name }} — {{ c.quote.price }} руб. ({{ c.quote.delivery_days }} дн.) [{{ c.total_score }}б]
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Обоснование выбора</label>
+        <textarea name="justification" class="form-control" rows="3"
+          placeholder="Напр.: Выбран как наиболее быстрый вариант для аварийной заявки…">{% if item.justification_for_choice %}{{ item.justification_for_choice }}{% endif %}</textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">Подтвердить выбор</button>
+      <a href="{% url 'request_detail' request.pk %}" class="btn btn-outline-secondary ms-2">Назад к заявке</a>
+    </form>
+  </div>
+</div>
+
+{% else %}
+<div class="alert alert-warning">
+  <i class="bi bi-exclamation-triangle me-2"></i>
+  По данному материалу нет ценовых предложений.
+  {% if user.can_manage_suppliers %}
+  <a href="{% url 'quote_create' %}?material={{ item.material.pk }}">Добавить предложение</a>
+  {% endif %}
+</div>
+{% endif %}
+
+<a href="{% url 'request_detail' request.pk %}" class="btn btn-outline-secondary mt-3">
+  <i class="bi bi-arrow-left me-1"></i> Назад к заявке
+</a>
+{% endblock %}

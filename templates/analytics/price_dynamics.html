@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% load core_filters %}
+{% block title %}Динамика цен{% endblock %}
+{% block breadcrumb_items %}<li class="breadcrumb-item active">Динамика цен</li>{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-graph-up me-2"></i>Динамика цен МТР</h1></div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Выберите материал / оборудование</label>
+        <select name="material" class="form-select" onchange="this.form.submit()">
+          <option value="">— Выберите МТР —</option>
+          {% for m in materials %}
+          <option value="{{ m.pk }}" {% if selected_material_id|stringformat:"s" == m.pk|stringformat:"s" %}selected{% endif %}>
+            {{ m.code }} — {{ m.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if selected_material %}
+<div class="card mb-4">
+  <div class="card-header">
+    <strong>{{ selected_material.name }}</strong>
+    <span class="text-muted ms-2">{{ selected_material.code }}</span>
+    · Ед. изм.: {{ selected_material.unit }}
+  </div>
+  <div class="card-body">
+    <canvas id="priceChart" height="100"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">Сводка по поставщикам</div>
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Поставщик</th><th>Лучшая цена</th><th>Последнее КП</th><th>Срок поставки</th><th>Рейтинг</th></tr></thead>
+      <tbody>
+        {% for q in selected_material.price_quotes.all %}
+        <tr>
+          <td><a href="{% url 'supplier_detail' q.supplier.pk %}">{{ q.supplier.name }}</a></td>
+          <td class="fw-bold">{{ q.price|rubles }}</td>
+          <td>{{ q.quote_date|date:"d.m.Y" }}</td>
+          <td>{{ q.delivery_days }} дн.</td>
+          <td><span class="badge bg-{{ q.supplier.get_rating_color }}">{{ q.supplier.rating }}/10</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-light border text-center py-5">
+  <i class="bi bi-graph-up fs-1 text-muted d-block mb-3"></i>
+  <p class="mb-0 text-muted">Выберите материал для отображения динамики цен</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const priceData = {{ price_data_json|safe }};
+const ctx = document.getElementById('priceChart');
+if (ctx && Object.keys(priceData).length > 0) {
+  const colors = ['#0d6efd','#198754','#dc3545','#fd7e14','#6f42c1','#0dcaf0','#20c997'];
+  const datasets = Object.entries(priceData).map(([supplier, data], i) => ({
+    label: supplier,
+    data: data.map(d => ({ x: d.date, y: d.price })),
+    borderColor: colors[i % colors.length],
+    backgroundColor: colors[i % colors.length] + '22',
+    tension: 0.3,
+    pointRadius: 5,
+    pointHoverRadius: 8,
+  }));
+  new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      scales: {
+        x: { type: 'category', title: { display: true, text: 'Дата предложения' } },
+        y: { title: { display: true, text: 'Цена, руб.' }, beginAtZero: false }
+      },
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.raw.y.toLocaleString('ru-RU')} ₽`
+          }
+        }
+      }
+    }
+  });
+}
+</script>
+{% endblock %}

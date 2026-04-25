@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% load core_filters %}
+{% block title %}{{ material.name }}{% endblock %}
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'material_list' %}">Каталог МТР</a></li>
+<li class="breadcrumb-item active">{{ material.code }}</li>
+{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+  <div>
+    <h1>{{ material.name }}</h1>
+    <code class="text-muted">{{ material.code }}</code>
+    {% if material.gost %}<span class="badge bg-secondary ms-2">{{ material.gost }}</span>{% endif %}
+  </div>
+  <div class="d-flex gap-2">
+    {% if user.can_manage_catalog %}
+    <a href="{% url 'material_update' material.pk %}" class="btn btn-outline-secondary"><i class="bi bi-pencil"></i> Редактировать</a>
+    {% endif %}
+    {% if user.can_manage_suppliers %}
+    <a href="{% url 'quote_create' %}?material={{ material.pk }}" class="btn btn-success"><i class="bi bi-plus"></i> Добавить КП</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Info -->
+  <div class="col-md-4">
+    <div class="card mb-3">
+      <div class="card-header">Сведения о позиции</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tr><th>Категория</th><td>{{ material.category.name }}</td></tr>
+          <tr><th>Ед. изм.</th><td>{{ material.unit }}</td></tr>
+          <tr><th>Критичность</th><td><span class="badge bg-{{ material.get_criticality_color }}">{{ material.get_criticality_display }}</span></td></tr>
+          <tr><th>Мин. запас</th><td>{{ material.min_stock_level }} {{ material.unit }}</td></tr>
+        </table>
+        {% if material.technical_specs %}
+        <hr><p class="small text-muted mb-0"><strong>Техническое описание:</strong><br>{{ material.technical_specs }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Warehouse -->
+    <div class="card">
+      <div class="card-header d-flex justify-content-between">
+        <span><i class="bi bi-buildings me-1"></i>Складские остатки</span>
+        {% if user.role != 'initiator' %}
+        <a href="{% url 'warehouse_create' %}?material={{ material.pk }}" class="btn btn-sm btn-outline-success">+ Остаток</a>
+        {% endif %}
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Склад</th><th>Кол-во</th><th>Резерв</th><th>Свободно</th></tr></thead>
+          <tbody>
+            {% for s in stocks %}
+            <tr>
+              <td>{{ s.location }}</td>
+              <td>{{ s.qty_on_hand }}</td>
+              <td class="text-muted">{{ s.qty_reserved }}</td>
+              <td class="{% if s.qty_available == 0 %}text-danger fw-bold{% elif s.is_low %}text-warning fw-bold{% else %}text-success{% endif %}">
+                {{ s.qty_available }}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted py-2">Данных нет</td></tr>
+            {% endfor %}
+          </tbody>
+          {% if stocks %}
+          <tfoot><tr class="table-secondary">
+            <th>Итого</th>
+            <th>{{ material.get_total_stock }}</th>
+            <th></th>
+            <th>{{ material.get_available_stock }}</th>
+          </tr></tfoot>
+          {% endif %}
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quotes + Chart -->
+  <div class="col-md-8">
+    <!-- Price chart -->
+    {% if price_history_json != '[]' %}
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-graph-up me-1"></i>Динамика цен</div>
+      <div class="card-body"><canvas id="priceChart" height="120"></canvas></div>
+    </div>
+    {% endif %}
+
+    <!-- Quotes table -->
+    <div class="card">
+      <div class="card-header"><i class="bi bi-currency-exchange me-1"></i>Ценовые предложения</div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead><tr><th>Поставщик</th><th>Цена</th><th>Срок, дн.</th><th>Условия оплаты</th><th>Дата КП</th><th>Действ. до</th><th></th></tr></thead>
+          <tbody>
+            {% for q in quotes %}
+            <tr>
+              <td>
+                <a href="{% url 'supplier_detail' q.supplier.pk %}">{{ q.supplier.name }}</a>
+                <div class="small text-muted">Рейтинг: {{ q.supplier.rating }}/10</div>
+              </td>
+              <td class="fw-bold">{{ q.price|rubles }}</td>
+              <td>{{ q.delivery_days }}</td>
+              <td class="small text-muted">{{ q.payment_terms|default:"—" }}</td>
+              <td>{{ q.quote_date|date:"d.m.Y" }}</td>
+              <td>
+                {% if q.valid_until %}
+                  {% if q.is_valid %}
+                    <span class="text-success">{{ q.valid_until|date:"d.m.Y" }}</span>
+                  {% else %}
+                    <span class="text-danger">{{ q.valid_until|date:"d.m.Y" }} !</span>
+                  {% endif %}
+                {% else %}—{% endif %}
+              </td>
+              <td class="text-nowrap">
+                {% if user.can_manage_suppliers %}
+                <a href="{% url 'quote_update' q.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                <form method="post" action="{% url 'quote_delete' q.pk %}" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-danger"
+                    onclick="return confirm('Удалить КП от {{ q.supplier.name }}?')" title="Удалить">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center text-muted py-4">
+              Ценовых предложений пока нет.
+              {% if user.can_manage_suppliers %}
+              <a href="{% url 'quote_create' %}?material={{ material.pk }}">Добавить первое</a>
+              {% endif %}
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const priceHistory = {{ price_history_json|safe }};
+if (priceHistory.length > 0) {
+  // Group by supplier
+  const suppliers = [...new Set(priceHistory.map(d => d.supplier))];
+  const colors = ['#0d6efd','#198754','#dc3545','#fd7e14','#6f42c1','#0dcaf0'];
+  const datasets = suppliers.map((sup, i) => ({
+    label: sup,
+    data: priceHistory.filter(d => d.supplier === sup).map(d => ({x: d.date, y: d.price})),
+    borderColor: colors[i % colors.length],
+    backgroundColor: colors[i % colors.length] + '22',
+    tension: 0.3,
+    pointRadius: 4,
+  }));
+  const ctx = document.getElementById('priceChart');
+  if (ctx) new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      scales: {
+        x: { type: 'category', title: { display: true, text: 'Дата' } },
+        y: { title: { display: true, text: 'Цена, руб.' }, beginAtZero: false }
+      },
+      plugins: { legend: { position: 'top' } }
+    }
+  });
+}
+</script>
+{% endblock %}

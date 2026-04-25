@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% load core_filters %}
+{% block title %}{{ supplier.name }}{% endblock %}
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'supplier_list' %}">Поставщики</a></li>
+<li class="breadcrumb-item active">{{ supplier.name }}</li>
+{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+  <div>
+    <h1>{{ supplier.name }}</h1>
+    <span class="text-muted">ИНН: {{ supplier.inn }}</span>
+    <span class="badge bg-{{ supplier.get_rating_color }} ms-2 fs-6">Рейтинг {{ supplier.rating }}/10</span>
+    {% if not supplier.is_active %}<span class="badge bg-secondary ms-1">Неактивен</span>{% endif %}
+  </div>
+  <div class="d-flex gap-2">
+    {% if user.can_manage_suppliers %}
+    <a href="{% url 'supplier_update' supplier.pk %}" class="btn btn-outline-secondary"><i class="bi bi-pencil"></i> Редактировать</a>
+    <a href="{% url 'quote_create' %}?supplier={{ supplier.pk }}" class="btn btn-success"><i class="bi bi-plus"></i> Добавить КП</a>
+    {% if supplier.is_active %}
+    <form method="post" action="{% url 'supplier_delete' supplier.pk %}" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline-danger"
+        onclick="return confirm('Деактивировать поставщика «{{ supplier.name }}»?')">
+        <i class="bi bi-slash-circle"></i> Деактивировать
+      </button>
+    </form>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header">Реквизиты и контакты</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          {% if supplier.contact_person %}<tr><th>Контакт</th><td>{{ supplier.contact_person }}</td></tr>{% endif %}
+          {% if supplier.phone %}<tr><th>Телефон</th><td>{{ supplier.phone }}</td></tr>{% endif %}
+          {% if supplier.email %}<tr><th>Email</th><td>{{ supplier.email }}</td></tr>{% endif %}
+          {% if supplier.address %}<tr><th>Адрес</th><td>{{ supplier.address }}</td></tr>{% endif %}
+          <tr><th>Надёжность</th><td>{{ supplier.delivery_reliability }}%</td></tr>
+          <tr><th>Зарегистрирован</th><td>{{ supplier.created_at|date:"d.m.Y" }}</td></tr>
+        </table>
+        {% if supplier.notes %}
+        <hr><p class="small text-muted mb-0"><strong>Примечания:</strong> {{ supplier.notes }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="card mb-3">
+      <div class="card-header">Ценовые предложения</div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Материал</th><th>Цена</th><th>Срок, дн.</th><th>Дата КП</th><th>Условия оплаты</th></tr></thead>
+          <tbody>
+            {% for q in quotes %}
+            <tr>
+              <td><a href="{% url 'material_detail' q.material.pk %}">{{ q.material.name|truncatechars:40 }}</a></td>
+              <td class="fw-bold">{{ q.price|rubles }}</td>
+              <td>{{ q.delivery_days }}</td>
+              <td>{{ q.quote_date|date:"d.m.Y" }}</td>
+              <td class="small text-muted">{{ q.payment_terms|default:"—" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center text-muted py-3">КП пока нет.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">Заказы</div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Номер</th><th>Заявка</th><th>Дата</th><th>Сумма</th><th>Статус</th></tr></thead>
+          <tbody>
+            {% for o in orders %}
+            <tr>
+              <td><a href="{% url 'order_detail' o.pk %}">{{ o.order_number }}</a></td>
+              <td><a href="{% url 'request_detail' o.request.pk %}">{{ o.request.request_number }}</a></td>
+              <td>{{ o.order_date|date:"d.m.Y" }}</td>
+              <td>{{ o.total_amount|rubles }}</td>
+              <td><span class="badge bg-{{ o.get_status_color }}">{{ o.get_status_display }}</span></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center text-muted py-3">Заказов нет.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

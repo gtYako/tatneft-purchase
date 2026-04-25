@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% load core_filters %}
+{% block title %}Каталог МТР{% endblock %}
+{% block breadcrumb_items %}<li class="breadcrumb-item active">Каталог МТР</li>{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+  <h1><i class="bi bi-box-seam me-2"></i>Каталог МТР</h1>
+  {% if user.can_manage_catalog %}
+  <a href="{% url 'material_create' %}" class="btn btn-primary"><i class="bi bi-plus"></i> Добавить МТР</a>
+  {% endif %}
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Поиск по коду или наименованию...">
+      </div>
+      <div class="col-md-3">
+        <select name="category" class="form-select form-select-sm">
+          <option value="">Все категории</option>
+          {% for cat in categories %}
+          <option value="{{ cat.pk }}" {% if cat_id|stringformat:"s" == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select name="criticality" class="form-select form-select-sm">
+          <option value="">Вся критичность</option>
+          <option value="low" {% if crit == 'low' %}selected{% endif %}>Низкая</option>
+          <option value="medium" {% if crit == 'medium' %}selected{% endif %}>Средняя</option>
+          <option value="high" {% if crit == 'high' %}selected{% endif %}>Высокая</option>
+          <option value="critical" {% if crit == 'critical' %}selected{% endif %}>Критическая</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-sm btn-secondary w-100">Найти</button>
+      </div>
+      <div class="col-md-1">
+        <a href="{% url 'material_list' %}" class="btn btn-sm btn-outline-secondary w-100">✕</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Код МТР</th>
+          <th>Наименование</th>
+          <th>Категория</th>
+          <th>Ед. изм.</th>
+          <th>Критичность</th>
+          <th>На складе</th>
+          <th>Лучшая цена</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for mat in materials %}
+        <tr>
+          <td><code class="text-primary">{{ mat.code }}</code></td>
+          <td>
+            <a href="{% url 'material_detail' mat.pk %}" class="text-decoration-none fw-semibold">{{ mat.name }}</a>
+            {% if mat.gost %}<div class="text-muted small">{{ mat.gost }}</div>{% endif %}
+          </td>
+          <td><span class="badge bg-light text-dark border">{{ mat.category.name }}</span></td>
+          <td>{{ mat.unit }}</td>
+          <td>
+            <span class="badge bg-{{ mat.get_criticality_color }}">{{ mat.get_criticality_display }}</span>
+          </td>
+          <td>
+            {% with stock=mat.get_available_stock %}
+            {% if stock == 0 %}
+              <span class="text-danger fw-bold">0</span>
+            {% elif mat.is_below_min_stock %}
+              <span class="text-warning fw-bold">{{ stock }}</span>
+            {% else %}
+              <span class="text-success">{{ stock }}</span>
+            {% endif %}
+            {% endwith %}
+            <small class="text-muted">{{ mat.unit }}</small>
+          </td>
+          <td>
+            {% with price=mat.get_best_price %}
+            {% if price %}{{ price|rubles }}{% else %}<span class="text-muted">—</span>{% endif %}
+            {% endwith %}
+          </td>
+          <td class="text-nowrap">
+            <a href="{% url 'material_detail' mat.pk %}" class="btn btn-sm btn-outline-primary">Подробнее</a>
+            {% if user.can_manage_catalog %}
+            <a href="{% url 'material_update' mat.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+            <form method="post" action="{% url 'material_delete' mat.pk %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-danger"
+                onclick="return confirm('Деактивировать МТР «{{ mat.name }}»?')" title="Деактивировать">
+                <i class="bi bi-archive"></i>
+              </button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted py-4">Материалов не найдено.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+  {% include 'partials/pagination.html' %}
+</div>
+{% endblock %}

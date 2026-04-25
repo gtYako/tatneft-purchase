@@ -1,0 +1,222 @@
+{% load core_filters %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}ИС Закупки МТР{% endblock %} — НефтеЗакупки</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<style>
+  :root {
+    --sidebar-width: 260px;
+    --sidebar-bg: #1a1f2e;
+    --sidebar-accent: #e85d04;
+    --sidebar-text: #c8d0e0;
+  }
+  body { background: #f0f2f5; font-size: 0.9rem; }
+  #sidebar {
+    position: fixed; top: 0; left: 0; height: 100vh;
+    width: var(--sidebar-width); background: var(--sidebar-bg);
+    display: flex; flex-direction: column; z-index: 1000;
+    overflow-y: auto;
+  }
+  #sidebar .sidebar-brand {
+    padding: 1.2rem 1rem;
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+    display: flex; align-items: center; gap: .5rem;
+  }
+  #sidebar .sidebar-brand .icon { color: var(--sidebar-accent); font-size: 1.4rem; }
+  #sidebar .nav-section {
+    padding: .5rem 1rem .2rem;
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: rgba(255,255,255,.35);
+    margin-top: .5rem;
+  }
+  #sidebar .nav-link {
+    color: var(--sidebar-text);
+    padding: .45rem 1rem;
+    border-radius: 6px;
+    margin: 1px .5rem;
+    display: flex; align-items: center; gap: .55rem;
+    font-size: .875rem;
+    transition: background .15s, color .15s;
+  }
+  #sidebar .nav-link:hover, #sidebar .nav-link.active {
+    background: rgba(232,93,4,.18);
+    color: #fff;
+  }
+  #sidebar .nav-link i { font-size: 1rem; width: 1.2rem; text-align: center; }
+  #sidebar .sidebar-user {
+    margin-top: auto;
+    padding: .75rem 1rem;
+    border-top: 1px solid rgba(255,255,255,.1);
+    color: var(--sidebar-text);
+    font-size: .8rem;
+  }
+  #sidebar .sidebar-user .role-badge {
+    display: inline-block;
+    background: rgba(232,93,4,.3);
+    color: #ffb380;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: .7rem;
+  }
+  #content {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+  }
+  #topbar {
+    background: #fff;
+    padding: .6rem 1.5rem;
+    border-bottom: 1px solid #e2e6ea;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .main-content { padding: 1.5rem; flex: 1; }
+  .card { border: none; box-shadow: 0 1px 4px rgba(0,0,0,.07); border-radius: 10px; }
+  .card-header { background: #fff; border-bottom: 1px solid #f0f0f0; font-weight: 600; }
+  .stat-card { border-radius: 12px; padding: 1.2rem 1.5rem; color: #fff; }
+  .table th { font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: #6c757d; }
+  .badge { font-size: .72rem; font-weight: 500; }
+  .btn { border-radius: 6px; }
+  .page-header { margin-bottom: 1.5rem; }
+  .page-header h1 { font-size: 1.4rem; font-weight: 700; margin: 0; }
+  .score-bar { height: 8px; border-radius: 4px; }
+  @media (max-width: 768px) {
+    #sidebar { transform: translateX(-100%); }
+    #content { margin-left: 0; }
+  }
+</style>
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% if user.is_authenticated %}
+<div id="sidebar">
+  <div class="sidebar-brand">
+    <i class="bi bi-droplet-fill icon"></i>
+    <div>
+      <div>НефтеЗакупки</div>
+      <div style="font-size:.68rem;font-weight:400;color:rgba(255,255,255,.4);">ИС Оптимизации МТР</div>
+    </div>
+  </div>
+
+  <div class="nav flex-column pt-2">
+    <div class="nav-section">Главное</div>
+    <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+      <i class="bi bi-speedometer2"></i> Панель управления
+    </a>
+
+    <div class="nav-section">Каталог МТР</div>
+    <a href="{% url 'material_list' %}" class="nav-link {% if 'material' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="bi bi-box-seam"></i> Материалы
+    </a>
+    <a href="{% url 'category_list' %}" class="nav-link {% if 'category' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="bi bi-tags"></i> Категории
+    </a>
+
+    <div class="nav-section">Склад</div>
+    <a href="{% url 'warehouse_list' %}" class="nav-link {% if 'warehouse' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="bi bi-buildings"></i> Складские остатки
+    </a>
+
+    <div class="nav-section">Закупки</div>
+    <a href="{% url 'request_list' %}" class="nav-link {% if 'request' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="bi bi-file-earmark-text"></i> Заявки на закупку
+    </a>
+    {% if user.role != 'initiator' %}
+    <a href="{% url 'supplier_list' %}" class="nav-link {% if 'supplier' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="bi bi-truck"></i> Поставщики
+    </a>
+    <a href="{% url 'quote_list' %}" class="nav-link {% if 'quote' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="bi bi-currency-exchange"></i> Ценовые предложения
+    </a>
+    <a href="{% url 'order_list' %}" class="nav-link {% if 'order' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="bi bi-receipt"></i> Заказы поставщикам
+    </a>
+    {% endif %}
+
+    {% if user.role != 'initiator' %}
+    <div class="nav-section">Аналитика</div>
+    <a href="{% url 'analytics_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'analytics_dashboard' %}active{% endif %}">
+      <i class="bi bi-bar-chart-line"></i> Обзор аналитики
+    </a>
+    <a href="{% url 'price_dynamics' %}" class="nav-link {% if request.resolver_match.url_name == 'price_dynamics' %}active{% endif %}">
+      <i class="bi bi-graph-up"></i> Динамика цен
+    </a>
+    <a href="{% url 'shortage_report' %}" class="nav-link {% if request.resolver_match.url_name == 'shortage_report' %}active{% endif %}">
+      <i class="bi bi-exclamation-triangle"></i> Дефицит МТР
+    </a>
+    {% if user.role in 'analyst,manager,admin' %}
+    <a href="{% url 'reports' %}" class="nav-link {% if request.resolver_match.url_name == 'reports' %}active{% endif %}">
+      <i class="bi bi-file-bar-graph"></i> Отчёты
+    </a>
+    {% endif %}
+    {% endif %}
+
+    {% if user.role == 'admin' %}
+    <div class="nav-section">Администрирование</div>
+    <a href="{% url 'user_list' %}" class="nav-link {% if 'user' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="bi bi-people"></i> Пользователи
+    </a>
+    <a href="{% url 'audit_log' %}" class="nav-link {% if request.resolver_match.url_name == 'audit_log' %}active{% endif %}">
+      <i class="bi bi-journal-text"></i> Журнал операций
+    </a>
+    {% endif %}
+  </div>
+
+  <div class="sidebar-user">
+    <div class="fw-600 text-white mb-1">{{ user.get_full_name|default:user.username }}</div>
+    <div class="role-badge">{{ user.get_role_display }}</div>
+    {% if user.department %}<div class="mt-1 opacity-75">{{ user.department }}</div>{% endif %}
+    <a href="{% url 'logout' %}" class="d-block mt-2 text-danger text-decoration-none small">
+      <i class="bi bi-box-arrow-left"></i> Выйти
+    </a>
+  </div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <nav aria-label="breadcrumb" class="mb-0">
+      {% block breadcrumb %}
+      <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Главная</a></li>
+        {% block breadcrumb_items %}{% endblock %}
+      </ol>
+      {% endblock %}
+    </nav>
+    <div class="d-flex align-items-center gap-3">
+      <span class="text-muted small">{{ user.get_full_name|default:user.username }}</span>
+    </div>
+  </div>
+
+  <div class="main-content">
+    {% if messages %}
+      {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+{% else %}
+{% block unauth_content %}{% endblock %}
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

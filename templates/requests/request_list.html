@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load core_filters %}
+{% block title %}Заявки на закупку{% endblock %}
+{% block breadcrumb_items %}<li class="breadcrumb-item active">Заявки на закупку</li>{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+  <h1><i class="bi bi-file-earmark-text me-2"></i>Заявки на закупку</h1>
+  {% if user.role in 'initiator,purchaser,admin' %}
+  <a href="{% url 'request_create' %}" class="btn btn-primary"><i class="bi bi-plus"></i> Новая заявка</a>
+  {% endif %}
+</div>
+
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Номер заявки или подразделение...">
+      </div>
+      <div class="col-md-3">
+        <select name="status" class="form-select form-select-sm">
+          <option value="">Все статусы</option>
+          {% for s, label in status_choices %}
+          <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select name="criticality" class="form-select form-select-sm">
+          <option value="">Все типы</option>
+          <option value="planned" {% if crit_filter == 'planned' %}selected{% endif %}>Плановая</option>
+          <option value="emergency" {% if crit_filter == 'emergency' %}selected{% endif %}>Аварийная</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-sm btn-secondary">Найти</button>
+        <a href="{% url 'request_list' %}" class="btn btn-sm btn-outline-secondary ms-1">✕</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Номер</th><th>Инициатор</th><th>Подразделение</th><th>Тип</th><th>Дата нужды</th><th>Позиций</th><th>Статус</th><th>Создана</th><th></th></tr></thead>
+      <tbody>
+        {% for r in requests %}
+        <tr class="{% if r.criticality == 'emergency' and r.status == 'submitted' %}table-warning{% endif %}">
+          <td><a href="{% url 'request_detail' r.pk %}" class="fw-semibold text-decoration-none">{{ r.request_number }}</a></td>
+          <td>{{ r.requester.get_full_name|default:r.requester.username }}</td>
+          <td>{{ r.department }}</td>
+          <td>
+            {% if r.criticality == 'emergency' %}
+              <span class="badge bg-danger"><i class="bi bi-lightning-fill"></i> Аварийная</span>
+            {% else %}
+              <span class="badge bg-primary">Плановая</span>
+            {% endif %}
+          </td>
+          <td>{{ r.need_date|date:"d.m.Y" }}</td>
+          <td>{{ r.items.count }}</td>
+          <td><span class="badge bg-{{ r.get_status_color }}">{{ r.get_status_display }}</span></td>
+          <td class="text-muted small">{{ r.created_at|date:"d.m.Y" }}</td>
+          <td><a href="{% url 'request_detail' r.pk %}" class="btn btn-sm btn-outline-primary">Открыть</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9" class="text-center text-muted py-4">Заявок не найдено.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+  {% include 'partials/pagination.html' %}
+</div>
+{% endblock %}

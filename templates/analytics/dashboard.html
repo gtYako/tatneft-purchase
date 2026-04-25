@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% load core_filters %}
+{% block title %}Аналитика{% endblock %}
+{% block breadcrumb_items %}<li class="breadcrumb-item active">Аналитика</li>{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-bar-chart-line me-2"></i>Обзор аналитики</h1></div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="stat-card" style="background:linear-gradient(135deg,#0d6efd,#0a58ca)">
+    <div class="fs-2 fw-bold">{{ total_requests }}</div><div>Всего заявок</div></div></div>
+  <div class="col-md-3"><div class="stat-card" style="background:linear-gradient(135deg,#198754,#146c43)">
+    <div class="fs-2 fw-bold">{{ total_orders }}</div><div>Заказов поставщикам</div></div></div>
+  <div class="col-md-3"><div class="stat-card" style="background:linear-gradient(135deg,#6f42c1,#59359a)">
+    <div class="fs-2 fw-bold">{{ total_suppliers }}</div><div>Активных поставщиков</div></div></div>
+  <div class="col-md-3"><div class="stat-card" style="background:linear-gradient(135deg,#fd7e14,#e85d04)">
+    <div class="fs-2 fw-bold">{{ total_quotes }}</div><div>Ценовых предложений</div></div></div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-header">Заявки по статусам</div>
+      <div class="card-body"><canvas id="statusChart" height="220"></canvas></div>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-exclamation-triangle me-1 text-warning"></i>Позиции ниже минимального запаса</span>
+        <a href="{% url 'shortage_report' %}" class="btn btn-sm btn-outline-warning">Полный отчёт</a>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Материал</th><th>Склад</th><th>Доступно</th><th>Мин. запас</th><th>Дефицит</th></tr></thead>
+          <tbody>
+            {% for s in shortage_stocks %}
+            <tr>
+              <td><a href="{% url 'material_detail' s.material.pk %}">{{ s.material.name|truncatechars:35 }}</a></td>
+              <td>{{ s.location }}</td>
+              <td class="text-danger fw-bold">{{ s.qty_available }} {{ s.material.unit }}</td>
+              <td>{{ s.material.min_stock_level }}</td>
+              <td class="text-danger">
+                {% with deficit=s.material.min_stock_level|subtract:s.qty_available %}
+                -{{ deficit }}
+                {% endwith %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center text-success py-3">Все остатки в норме!</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">Топ материалов по количеству КП</div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Материал</th><th>Кол-во КП</th></tr></thead>
+          <tbody>
+            {% for m in top_materials %}
+            <tr>
+              <td><a href="{% url 'material_detail' m.pk %}">{{ m.name|truncatechars:45 }}</a></td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height:6px">
+                    <div class="progress-bar" style="width:{{ m.q_count|percentage:total_quotes }}%"></div>
+                  </div>
+                  <span>{{ m.q_count }}</span>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">Последние ценовые предложения</div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Дата</th><th>Материал</th><th>Поставщик</th><th>Цена</th></tr></thead>
+          <tbody>
+            {% for q in recent_quotes %}
+            <tr>
+              <td class="small text-muted">{{ q.quote_date|date:"d.m.Y" }}</td>
+              <td><a href="{% url 'material_detail' q.material.pk %}">{{ q.material.name|truncatechars:25 }}</a></td>
+              <td>{{ q.supplier.name|truncatechars:20 }}</td>
+              <td class="fw-bold">{{ q.price|rubles }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const statusData = {{ status_data_json|safe }};
+const ctx = document.getElementById('statusChart');
+if (ctx && statusData) {
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(statusData),
+      datasets: [{
+        data: Object.values(statusData),
+        backgroundColor: ['#6c757d','#0d6efd','#198754','#dc3545','#0dcaf0','#212529'],
+      }]
+    },
+    options: { plugins: { legend: { position: 'bottom' } }, cutout: '60%' }
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,79 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: oil_db
+    restart: unless-stopped
+    networks:
+      - app_internal
+    environment:
+      POSTGRES_DB: oil_procurement
+      POSTGRES_USER: oil_user
+      POSTGRES_PASSWORD: oil_pass
+    volumes:
+      - oil_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oil_user -d oil_procurement"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: .
+    container_name: oil_backend
+    restart: unless-stopped
+    networks:
+      - app_internal
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8000"
+    environment:
+      DJANGO_DEBUG: "False"
+      DJANGO_ALLOWED_HOSTS: "almetpt-tatneft.online,www.almetpt-tatneft.online,localhost,nginx,backend"
+      DJANGO_SECRET_KEY: "VZG_RZo3rznBmoA59odfxAgTbo7dNEZ_TTkivd5yTNq_0pXgB8XOqWd03vKVjH3sZpM"
+      POSTGRES_DB: oil_procurement
+      POSTGRES_USER: oil_user
+      POSTGRES_PASSWORD: oil_pass
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      CSRF_TRUSTED_ORIGINS: "https://almetpt-tatneft.online,https://www.almetpt-tatneft.online"
+      CORS_ALLOWED_ORIGINS: "https://almetpt-tatneft.online,https://www.almetpt-tatneft.online"
+    volumes:
+      - oil_static:/app/staticfiles
+
+  frontend:
+    build: ./frontend
+    container_name: oil_frontend
+    restart: unless-stopped
+    networks:
+      - app_internal
+    expose:
+      - "80"
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: oil_nginx
+    restart: unless-stopped
+    networks:
+      - edge
+      - app_internal
+    depends_on:
+      - backend
+      - frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - oil_static:/var/www/django-static:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+
+volumes:
+  oil_postgres_data:
+  oil_static:
+
+networks:
+  edge:
+  app_internal:
+    internal: true

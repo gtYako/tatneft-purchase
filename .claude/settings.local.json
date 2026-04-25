@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose *)",
+      "Bash(docker exec oil_backend python -c ' *)",
+      "Bash(docker exec *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost/api/auth/csrf/)"
+    ]
+  }
+}

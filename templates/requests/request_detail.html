@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+{% load core_filters crispy_forms_tags %}
+{% block title %}{{ request.request_number }}{% endblock %}
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'request_list' %}">Заявки</a></li>
+<li class="breadcrumb-item active">{{ request.request_number }}</li>
+{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div class="page-header d-flex justify-content-between align-items-start">
+  <div>
+    <h1>
+      {{ request.request_number }}
+      <span class="badge bg-{{ request.get_status_color }} fs-6 ms-2">{{ request.get_status_display }}</span>
+      {% if request.criticality == 'emergency' %}
+        <span class="badge bg-danger ms-1"><i class="bi bi-lightning-fill"></i> АВАРИЙНАЯ</span>
+      {% endif %}
+    </h1>
+    <div class="text-muted">
+      Инициатор: <strong>{{ request.requester.get_full_name|default:request.requester.username }}</strong>
+      · Подразделение: <strong>{{ request.department }}</strong>
+      · Нужно до: <strong>{{ request.need_date|date:"d.m.Y" }}</strong>
+      · Создана: {{ request.created_at|date:"d.m.Y H:i" }}
+    </div>
+  </div>
+
+  <!-- Action buttons -->
+  <div class="d-flex flex-column gap-2 align-items-end">
+    {% if request.status == 'draft' %}
+      {% if request.requester == user or user.role in 'purchaser,admin' %}
+      <a href="{% url 'request_edit' request.pk %}" class="btn btn-outline-secondary">
+        <i class="bi bi-pencil"></i> Редактировать
+      </a>
+      {% endif %}
+    {% endif %}
+
+    {% if request.can_be_submitted and user.role in 'initiator,purchaser,admin' %}
+      {% if request.requester == user or user.role in 'purchaser,admin' %}
+      <form method="post" action="{% url 'request_submit' request.pk %}">
+        {% csrf_token %}
+        <button class="btn btn-primary" onclick="return confirm('Подать заявку на рассмотрение?')">
+          <i class="bi bi-send"></i> Подать на рассмотрение
+        </button>
+      </form>
+      {% endif %}
+    {% endif %}
+
+    {% if request.can_be_approved and user.can_approve %}
+    <form method="post" action="{% url 'request_approve' request.pk %}" class="d-inline">
+      {% csrf_token %}
+      <button class="btn btn-success" onclick="return confirm('Утвердить заявку?')">
+        <i class="bi bi-check-circle"></i> Утвердить
+      </button>
+    </form>
+    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
+      <i class="bi bi-x-circle"></i> Отклонить
+    </button>
+    {% endif %}
+
+    {% if request.status == 'approved' and user.role in 'purchaser,admin' %}
+    <a href="{% url 'order_create' request.pk %}" class="btn btn-warning">
+      <i class="bi bi-receipt"></i> Создать заказ поставщику
+    </a>
+    {% endif %}
+
+    {% if request.status == 'rejected' %}
+    <form method="post" action="{% url 'request_return_to_draft' request.pk %}">
+      {% csrf_token %}
+      <button class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i> Вернуть в черновик</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Rejection comment -->
+{% if request.status == 'rejected' and request.rejection_comment %}
+<div class="alert alert-danger">
+  <strong><i class="bi bi-x-circle me-1"></i>Заявка отклонена:</strong> {{ request.rejection_comment }}
+</div>
+{% endif %}
+
+<!-- Approval info -->
+{% if request.approved_by %}
+<div class="alert alert-success">
+  <i class="bi bi-check-circle me-1"></i>
+  Утверждено: <strong>{{ request.approved_by.get_full_name|default:request.approved_by.username }}</strong>
+  {{ request.approved_at|date:"d.m.Y H:i" }}
+</div>
+{% endif %}
+
+{% if request.justification %}
+<div class="alert alert-light border">
+  <strong>Обоснование потребности:</strong> {{ request.justification }}
+</div>
+{% endif %}
+
+<!-- Items table -->
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-list-ul me-2"></i>Позиции заявки</span>
+    <span class="text-muted small">{{ items.count }} позиций</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Материал / МТР</th>
+          <th>Запрошено</th>
+          <th>Есть на складе</th>
+          <th>К закупке</th>
+          <th>Целевая цена</th>
+          <th>Выбранный поставщик</th>
+          <th>Сумма</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td class="text-muted">{{ forloop.counter }}</td>
+          <td>
+            <a href="{% url 'material_detail' item.material.pk %}" class="text-decoration-none fw-semibold">
+              {{ item.material.name|truncatechars:40 }}
+            </a>
+            <div class="small text-muted"><code>{{ item.material.code }}</code> · {{ item.material.unit }}</div>
+            <span class="badge bg-{{ item.material.get_criticality_color }} small">{{ item.material.get_criticality_display }}</span>
+          </td>
+          <td>{{ item.qty_requested }} {{ item.material.unit }}</td>
+          <td>
+            {% if item.qty_available_at_warehouse > 0 %}
+              <span class="text-success fw-bold">{{ item.qty_available_at_warehouse }}</span>
+              <span class="badge bg-success ms-1">Со склада</span>
+            {% else %}
+              <span class="text-muted">0</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if item.qty_to_purchase > 0 %}
+              <span class="fw-bold text-danger">{{ item.qty_to_purchase }}</span>
+            {% else %}
+              <span class="text-success">0 (есть на складе)</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if item.target_price %}{{ item.target_price|rubles }}{% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td>
+            {% if item.selected_quote %}
+              <div>
+                <a href="{% url 'supplier_detail' item.selected_quote.supplier.pk %}">
+                  {{ item.selected_quote.supplier.name|truncatechars:25 }}
+                </a>
+              </div>
+              <div class="small text-muted">{{ item.selected_quote.price|rubles }} · {{ item.selected_quote.delivery_days }} дн.</div>
+              {% if item.justification_for_choice %}
+              <div class="small text-info fst-italic">{{ item.justification_for_choice|truncatechars:50 }}</div>
+              {% endif %}
+            {% elif item.qty_to_purchase > 0 %}
+              <span class="text-warning small">⚠ Не выбрано</span>
+            {% else %}
+              <span class="text-muted small">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if item.line_total %}<strong>{{ item.line_total|rubles }}</strong>{% else %}—{% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              {% if item.qty_to_purchase > 0 and user.role not in 'initiator' %}
+              <a href="{% url 'market_analysis' item.pk %}" class="btn btn-sm btn-outline-info" title="Анализ рынка">
+                <i class="bi bi-bar-chart"></i>
+              </a>
+              {% endif %}
+              {% if request.status == 'draft' %}
+              <form method="post" action="{% url 'request_delete_item' request.pk item.pk %}">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Удалить позицию?')" title="Удалить">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9" class="text-center text-muted py-4">Позиций пока нет. Добавьте МТР ниже.</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if items %}
+      <tfoot>
+        <tr class="table-secondary fw-bold">
+          <td colspan="7" class="text-end">Итого к закупке:</td>
+          <td>{{ request.get_total_target_amount|rubles }}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add item form (only for draft) -->
+{% if request.status == 'draft' and user.role != 'manager' and user.role != 'analyst' %}
+<div class="card mb-4">
+  <div class="card-header"><i class="bi bi-plus-circle me-2"></i>Добавить позицию</div>
+  <div class="card-body">
+    <form method="post" action="{% url 'request_add_item' request.pk %}" id="addItemForm">
+      {% csrf_token %}
+      {{ item_form|crispy }}
+      <button type="reset" class="btn btn-outline-secondary ms-2">
+        <i class="bi bi-arrow-counterclockwise me-1"></i>Сбросить
+      </button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<!-- Orders section -->
+{% if orders %}
+<div class="card mb-4">
+  <div class="card-header"><i class="bi bi-receipt me-2"></i>Заказы поставщикам</div>
+  <div class="card-body p-0">
+    <table class="table mb-0">
+      <thead><tr><th>Номер заказа</th><th>Поставщик</th><th>Дата заказа</th><th>Ожидаемая поставка</th><th>Сумма</th><th>Статус</th><th></th></tr></thead>
+      <tbody>
+        {% for order in orders %}
+        <tr>
+          <td><a href="{% url 'order_detail' order.pk %}">{{ order.order_number }}</a></td>
+          <td>{{ order.supplier.name }}</td>
+          <td>{{ order.order_date|date:"d.m.Y" }}</td>
+          <td>
+            {{ order.expected_delivery_date|date:"d.m.Y"|default:"—" }}
+            {% if order.is_overdue %}<span class="badge bg-danger ms-1">Просрочен!</span>{% endif %}
+          </td>
+          <td>{{ order.total_amount|rubles }}</td>
+          <td><span class="badge bg-{{ order.get_status_color }}">{{ order.get_status_display }}</span></td>
+          <td><a href="{% url 'order_detail' order.pk %}" class="btn btn-sm btn-outline-secondary">→</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Reject modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-danger"><i class="bi bi-x-circle me-2"></i>Отклонить заявку</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'request_reject' request.pk %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          {{ reject_form|crispy }}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-danger">Отклонить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

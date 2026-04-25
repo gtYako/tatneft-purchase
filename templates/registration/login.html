@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Вход — НефтеЗакупки</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<style>
+  body { background: linear-gradient(135deg, #1a1f2e 0%, #2d3549 100%); min-height: 100vh; display: flex; align-items: center; }
+  .login-card { max-width: 420px; width: 100%; border: none; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+  .login-header { background: linear-gradient(135deg, #e85d04, #f4820a); border-radius: 16px 16px 0 0; padding: 2rem; text-align: center; }
+  .login-header .icon { font-size: 2.5rem; }
+  .login-body { padding: 2rem; }
+  .hint-table td { font-size: .8rem; padding: 2px 6px; }
+  .hint-table tr:hover { background: #f8f9fa; }
+</style>
+</head>
+<body>
+<div class="container">
+<div class="d-flex justify-content-center">
+<div class="login-card card">
+  <div class="login-header text-white">
+    <div class="icon mb-2"><i class="bi bi-droplet-fill"></i></div>
+    <h4 class="mb-0 fw-bold">НефтеЗакупки</h4>
+    <p class="mb-0 opacity-75 small">ИС анализа рынка и оптимизации закупок МТР</p>
+  </div>
+  <div class="login-body">
+    {% if form.errors %}
+    <div class="alert alert-danger alert-sm">Неверный логин или пароль.</div>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Логин</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-person"></i></span>
+          <input type="text" name="username" class="form-control" placeholder="Введите логин" autofocus required>
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="form-label fw-semibold">Пароль</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-lock"></i></span>
+          <input type="password" name="password" class="form-control" placeholder="Введите пароль" required>
+        </div>
+      </div>
+      <input type="hidden" name="next" value="{{ next }}">
+      <button type="submit" class="btn btn-warning w-100 fw-bold py-2">
+        <i class="bi bi-box-arrow-in-right me-1"></i> Войти в систему
+      </button>
+    </form>
+
+    <hr class="my-3">
+    <p class="text-muted small text-center mb-2">Тестовые учётные записи:</p>
+    <table class="table table-sm hint-table">
+      <thead><tr><th>Логин</th><th>Пароль</th><th>Роль</th></tr></thead>
+      <tbody>
+        <tr><td><code>initiator</code></td><td><code>demo1234</code></td><td>Инициатор</td></tr>
+        <tr><td><code>purchaser</code></td><td><code>demo1234</code></td><td>Закупщик</td></tr>
+        <tr><td><code>analyst</code></td><td><code>demo1234</code></td><td>Аналитик</td></tr>
+        <tr><td><code>manager</code></td><td><code>demo1234</code></td><td>Руководитель</td></tr>
+        <tr><td><code>admin</code></td><td><code>demo1234</code></td><td>Администратор</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

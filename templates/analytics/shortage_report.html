@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% load core_filters %}
+{% block title %}Отчёт по дефициту МТР{% endblock %}
+{% block breadcrumb_items %}<li class="breadcrumb-item active">Дефицит МТР</li>{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Отчёт по дефициту МТР</h1></div>
+
+<div class="row g-4">
+  <div class="col-md-7">
+    <div class="card">
+      <div class="card-header text-danger fw-bold">
+        <i class="bi bi-cart-x me-1"></i>Позиции заявок, требующие закупки
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+        <table class="table table-hover mb-0 table-sm">
+          <thead>
+            <tr>
+              <th>Заявка</th>
+              <th>Материал</th>
+              <th>Запрошено</th>
+              <th>На складе</th>
+              <th>К закупке</th>
+              <th>Тип</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in shortage_items %}
+            <tr class="{% if item.request.criticality == 'emergency' %}table-danger{% endif %}">
+              <td><a href="{% url 'request_detail' item.request.pk %}">{{ item.request.request_number }}</a></td>
+              <td>
+                <a href="{% url 'material_detail' item.material.pk %}">{{ item.material.name|truncatechars:35 }}</a>
+                <div class="small text-muted">{{ item.material.category.name }}</div>
+              </td>
+              <td>{{ item.qty_requested }} {{ item.material.unit }}</td>
+              <td class="text-muted">{{ item.qty_available_at_warehouse }}</td>
+              <td class="fw-bold text-danger">{{ item.qty_to_purchase }}</td>
+              <td>
+                {% if item.request.criticality == 'emergency' %}
+                  <span class="badge bg-danger"><i class="bi bi-lightning-fill"></i></span>
+                {% else %}
+                  <span class="badge bg-primary">П</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-center text-success py-4">Дефицита нет!</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header text-warning fw-bold">
+        <i class="bi bi-archive me-1"></i>МТР ниже минимального запаса
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Материал</th><th>Склад</th><th>Есть</th><th>Мин.</th></tr></thead>
+          <tbody>
+            {% for s in low_stocks %}
+            <tr>
+              <td><a href="{% url 'material_detail' s.material.pk %}">{{ s.material.name|truncatechars:30 }}</a></td>
+              <td>{{ s.location }}</td>
+              <td class="text-warning fw-bold">{{ s.qty_available }}</td>
+              <td>{{ s.material.min_stock_level }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-success py-4">Все запасы в норме!</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

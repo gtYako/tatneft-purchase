@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load core_filters %}
+{% block title %}{{ order.order_number }}{% endblock %}
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'order_list' %}">Заказы</a></li>
+<li class="breadcrumb-item active">{{ order.order_number }}</li>
+{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+  <div>
+    <h1>{{ order.order_number }}
+      <span class="badge bg-{{ order.get_status_color }} fs-6 ms-2">{{ order.get_status_display }}</span>
+      {% if order.is_overdue %}<span class="badge bg-danger ms-1">Просрочен!</span>{% endif %}
+    </h1>
+    <div class="text-muted">
+      Поставщик: <strong>{{ order.supplier.name }}</strong> ·
+      Заявка: <a href="{% url 'request_detail' order.request.pk %}">{{ order.request.request_number }}</a>
+    </div>
+  </div>
+  {% if user.role in 'purchaser,admin' %}
+  <div class="card p-3" style="min-width:200px">
+    <form method="post" action="{% url 'order_status_update' order.pk %}">
+      {% csrf_token %}
+      <label class="form-label fw-semibold small">Изменить статус</label>
+      <select name="status" class="form-select form-select-sm mb-2">
+        {% for s, label in order.STATUS_CHOICES %}
+        <option value="{{ s }}" {% if order.status == s %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-sm btn-primary w-100">Применить</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<div class="row g-4">
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header">Сведения о заказе</div>
+      <div class="card-body">
+        <table class="table table-sm mb-0">
+          <tr><th>Дата заказа</th><td>{{ order.order_date|date:"d.m.Y" }}</td></tr>
+          <tr><th>Ожидаемая поставка</th><td>{{ order.expected_delivery_date|date:"d.m.Y"|default:"—" }}</td></tr>
+          {% if order.actual_delivery_date %}
+          <tr><th>Фактическая поставка</th><td class="text-success fw-bold">{{ order.actual_delivery_date|date:"d.m.Y" }}</td></tr>
+          {% endif %}
+          <tr><th>Сумма заказа</th><td class="fw-bold fs-5">{{ order.total_amount|rubles }}</td></tr>
+          <tr><th>Создал</th><td>{{ order.created_by.get_full_name|default:order.created_by.username|default:"—" }}</td></tr>
+          <tr><th>Создан</th><td>{{ order.created_at|date:"d.m.Y H:i" }}</td></tr>
+        </table>
+        {% if order.notes %}
+        <hr><p class="small text-muted mb-0"><strong>Примечания:</strong> {{ order.notes }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-7">
+    <div class="card">
+      <div class="card-header">Поставщик</div>
+      <div class="card-body">
+        <h5><a href="{% url 'supplier_detail' order.supplier.pk %}">{{ order.supplier.name }}</a></h5>
+        <table class="table table-sm mb-0">
+          <tr><th>ИНН</th><td>{{ order.supplier.inn }}</td></tr>
+          {% if order.supplier.contact_person %}<tr><th>Контакт</th><td>{{ order.supplier.contact_person }}</td></tr>{% endif %}
+          {% if order.supplier.phone %}<tr><th>Телефон</th><td>{{ order.supplier.phone }}</td></tr>{% endif %}
+          {% if order.supplier.email %}<tr><th>Email</th><td>{{ order.supplier.email }}</td></tr>{% endif %}
+          <tr><th>Рейтинг</th><td><span class="badge bg-{{ order.supplier.get_rating_color }}">{{ order.supplier.rating }}/10</span></td></tr>
+          <tr><th>Надёжность</th><td>{{ order.supplier.delivery_reliability }}%</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

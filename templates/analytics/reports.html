@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load core_filters %}
+{% block title %}Отчёты{% endblock %}
+{% block breadcrumb_items %}<li class="breadcrumb-item active">Отчёты</li>{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-file-bar-graph me-2"></i>Сводные отчёты</h1></div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="stat-card" style="background:linear-gradient(135deg,#0d6efd,#0a58ca)">
+    <div class="fs-2 fw-bold">{{ requests_total }}</div><div>Всего заявок</div></div></div>
+  <div class="col-md-3"><div class="stat-card" style="background:linear-gradient(135deg,#198754,#146c43)">
+    <div class="fs-2 fw-bold">{{ orders_total }}</div><div>Заказов поставщикам</div></div></div>
+  <div class="col-md-3"><div class="stat-card" style="background:linear-gradient(135deg,#dc3545,#b02a37)">
+    <div class="fs-2 fw-bold">{{ emergency_ratio }}</div><div>Аварийных заявок</div></div></div>
+  <div class="col-md-3"><div class="stat-card" style="background:linear-gradient(135deg,#fd7e14,#e85d04)">
+    <div class="fs-2 fw-bold">{{ total_approved_amount|rubles }}</div><div>Объём закупок</div></div></div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">Заявки по месяцам</div>
+      <div class="card-body"><canvas id="monthlyChart" height="200"></canvas></div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">Статусы заказов</div>
+      <div class="card-body"><canvas id="orderStatusChart" height="200"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-4">
+  <div class="card-header">Топ поставщиков по числу заказов</div>
+  <div class="card-body p-0">
+    <table class="table mb-0">
+      <thead><tr><th>#</th><th>Поставщик</th><th>Заказов</th><th>Рейтинг</th><th>Надёжность</th></tr></thead>
+      <tbody>
+        {% for s in top_suppliers %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td><a href="{% url 'supplier_detail' s.pk %}">{{ s.name }}</a></td>
+          <td>{{ s.order_count }}</td>
+          <td><span class="badge bg-{{ s.get_rating_color }}">{{ s.rating }}/10</span></td>
+          <td>{{ s.delivery_reliability }}%</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-4">Нет данных.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const monthly = {{ monthly_json|safe }};
+const ctx1 = document.getElementById('monthlyChart');
+if (ctx1 && monthly.length > 0) {
+  new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: monthly.map(d => d.month),
+      datasets: [{ label: 'Заявок', data: monthly.map(d => d.count), backgroundColor: '#0d6efd88', borderColor: '#0d6efd', borderWidth: 1 }]
+    },
+    options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+  });
+}
+
+const orderStatus = {{ orders_by_status|safe }};
+const ctx2 = document.getElementById('orderStatusChart');
+if (ctx2) {
+  new Chart(ctx2, {
+    type: 'pie',
+    data: {
+      labels: Object.keys(orderStatus),
+      datasets: [{ data: Object.values(orderStatus), backgroundColor: ['#6c757d','#0d6efd','#0dcaf0','#198754','#dc3545'] }]
+    },
+    options: { plugins: { legend: { position: 'bottom' } } }
+  });
+}
+</script>
+{% endblock %}

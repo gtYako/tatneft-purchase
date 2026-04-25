@@ -1,0 +1,319 @@
+{% extends 'base.html' %}
+{% load core_filters %}
+
+{% block title %}Панель управления{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+  <div>
+    <h1><i class="bi bi-speedometer2 text-warning me-2"></i>Панель управления</h1>
+    <p class="text-muted mb-0">Добро пожаловать, {{ user.get_full_name|default:user.username }}</p>
+  </div>
+  <span class="badge bg-secondary fs-6">{{ user.get_role_display }}</span>
+</div>
+
+{% if user.role == 'initiator' %}
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="stat-card" style="background:linear-gradient(135deg,#6c757d,#495057)">
+      <div class="fs-2 fw-bold">{{ draft_count }}</div>
+      <div>Черновики</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card" style="background:linear-gradient(135deg,#0d6efd,#0a58ca)">
+      <div class="fs-2 fw-bold">{{ submitted_count }}</div>
+      <div>На рассмотрении</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card" style="background:linear-gradient(135deg,#198754,#146c43)">
+      <div class="fs-2 fw-bold">{{ approved_count }}</div>
+      <div>Утверждены</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-file-earmark-text me-2"></i>Мои заявки</span>
+    <a href="{% url 'request_create' %}" class="btn btn-sm btn-primary">
+      <i class="bi bi-plus"></i> Новая заявка
+    </a>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Номер</th><th>Подразделение</th><th>Тип</th><th>Дата нужды</th><th>Статус</th><th></th></tr></thead>
+      <tbody>
+        {% for r in my_requests %}
+        <tr>
+          <td><a href="{% url 'request_detail' r.pk %}" class="fw-semibold text-decoration-none">{{ r.request_number }}</a></td>
+          <td>{{ r.department }}</td>
+          <td>
+            {% if r.criticality == 'emergency' %}
+              <span class="badge bg-danger">Аварийная</span>
+            {% else %}
+              <span class="badge bg-primary">Плановая</span>
+            {% endif %}
+          </td>
+          <td>{{ r.need_date|date:"d.m.Y" }}</td>
+          <td><span class="badge bg-{{ r.get_status_color }}">{{ r.get_status_display }}</span></td>
+          <td><a href="{% url 'request_detail' r.pk %}" class="btn btn-sm btn-outline-secondary">Открыть</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-4">Заявок пока нет. <a href="{% url 'request_create' %}">Создать первую</a></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+{% elif user.role == 'manager' %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="stat-card" style="background:linear-gradient(135deg,#0d6efd,#0a58ca)">
+      <div class="fs-2 fw-bold">{{ pending_count }}</div>
+      <div>Ожидают утверждения</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card" style="background:linear-gradient(135deg,#dc3545,#b02a37)">
+      <div class="fs-2 fw-bold">{{ emergency_count }}</div>
+      <div>Из них аварийных</div>
+    </div>
+  </div>
+</div>
+
+{% if pending_requests %}
+<div class="card mb-4">
+  <div class="card-header"><i class="bi bi-clock-history me-2 text-warning"></i>Требуют вашего решения</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Номер</th><th>Инициатор</th><th>Подразделение</th><th>Тип</th><th>Нужно до</th><th>Позиций</th><th></th></tr></thead>
+      <tbody>
+        {% for r in pending_requests %}
+        <tr class="{% if r.criticality == 'emergency' %}table-danger{% endif %}">
+          <td><a href="{% url 'request_detail' r.pk %}" class="fw-semibold text-decoration-none">{{ r.request_number }}</a></td>
+          <td>{{ r.requester.get_full_name|default:r.requester.username }}</td>
+          <td>{{ r.department }}</td>
+          <td>
+            {% if r.criticality == 'emergency' %}
+              <span class="badge bg-danger"><i class="bi bi-lightning-fill"></i> Аварийная</span>
+            {% else %}
+              <span class="badge bg-primary">Плановая</span>
+            {% endif %}
+          </td>
+          <td>{{ r.need_date|date:"d.m.Y" }}</td>
+          <td>{{ r.items.count }}</td>
+          <td>
+            <a href="{% url 'request_detail' r.pk %}" class="btn btn-sm btn-outline-primary">Рассмотреть</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if recent_approved %}
+<div class="card mb-4">
+  <div class="card-header"><i class="bi bi-check2-circle me-2 text-success"></i>Последние решения (утверждённые вами)</div>
+  <div class="card-body p-0">
+    <table class="table table-sm mb-0">
+      <thead><tr><th>Номер</th><th>Подразделение</th><th>Статус</th><th>Утверждено</th><th></th></tr></thead>
+      <tbody>
+        {% for r in recent_approved %}
+        <tr>
+          <td><a href="{% url 'request_detail' r.pk %}">{{ r.request_number }}</a></td>
+          <td>{{ r.department }}</td>
+          <td><span class="badge bg-{{ r.get_status_color }}">{{ r.get_status_display }}</span></td>
+          <td class="text-muted small">{{ r.approved_at|date:"d.m.Y H:i" }}</td>
+          <td><a href="{% url 'request_detail' r.pk %}" class="btn btn-sm btn-outline-secondary">→</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% elif user.role == 'purchaser' %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="stat-card" style="background:linear-gradient(135deg,#0d6efd,#0a58ca)">
+    <div class="fs-2 fw-bold">{{ submitted_count }}</div><div>На рассмотрении</div></div></div>
+  <div class="col-md-3"><div class="stat-card" style="background:linear-gradient(135deg,#198754,#146c43)">
+    <div class="fs-2 fw-bold">{{ approved_count }}</div><div>Утверждены (к заказу)</div></div></div>
+  <div class="col-md-3"><div class="stat-card" style="background:linear-gradient(135deg,#6f42c1,#59359a)">
+    <div class="fs-2 fw-bold">{{ suppliers_count }}</div><div>Активных поставщиков</div></div></div>
+  <div class="col-md-3"><div class="stat-card" style="background:linear-gradient(135deg,#fd7e14,#e85d04)">
+    <div class="fs-2 fw-bold">{{ quotes_count }}</div><div>Ценовых предложений</div></div></div>
+</div>
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-clock me-2 text-primary"></i>Заявки на рассмотрении</div>
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0 table-sm">
+          <thead><tr><th>Номер</th><th>Тип</th><th>Нужно до</th><th></th></tr></thead>
+          <tbody>
+            {% for r in pending_requests %}
+            <tr>
+              <td><a href="{% url 'request_detail' r.pk %}">{{ r.request_number }}</a></td>
+              <td>{% if r.criticality == 'emergency' %}<span class="badge bg-danger">Аварийная</span>{% else %}<span class="badge bg-primary">Плановая</span>{% endif %}</td>
+              <td>{{ r.need_date|date:"d.m.Y" }}</td>
+              <td><a href="{% url 'request_detail' r.pk %}" class="btn btn-xs btn-outline-secondary btn-sm py-0 px-1">→</a></td>
+            </tr>
+            {% empty %}<tr><td colspan="4" class="text-center text-muted py-3">Нет заявок</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-check-circle me-2 text-success"></i>Утверждены — готовы к заказу</div>
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0 table-sm">
+          <thead><tr><th>Номер</th><th>Подразделение</th><th></th></tr></thead>
+          <tbody>
+            {% for r in approved_requests %}
+            <tr>
+              <td><a href="{% url 'request_detail' r.pk %}">{{ r.request_number }}</a></td>
+              <td>{{ r.department }}</td>
+              <td><a href="{% url 'order_create' r.pk %}" class="btn btn-sm btn-success py-0">Создать заказ</a></td>
+            </tr>
+            {% empty %}<tr><td colspan="3" class="text-center text-muted py-3">Нет заявок</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% elif user.role == 'analyst' %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="stat-card" style="background:linear-gradient(135deg,#0d6efd,#0a58ca)">
+    <div class="fs-2 fw-bold">{{ materials_count }}</div><div>Активных МТР</div></div></div>
+  <div class="col-md-3"><div class="stat-card" style="background:linear-gradient(135deg,#fd7e14,#e85d04)">
+    <div class="fs-2 fw-bold">{{ quotes_count }}</div><div>Ценовых предложений</div></div></div>
+  <div class="col-md-3"><div class="stat-card" style="background:linear-gradient(135deg,#dc3545,#b02a37)">
+    <div class="fs-2 fw-bold">{{ low_stock|length }}</div><div>Позиций ниже минимума</div></div></div>
+</div>
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Низкие складские остатки</div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Материал</th><th>Склад</th><th>Доступно</th><th>Мин.</th></tr></thead>
+          <tbody>
+            {% for s in low_stock %}
+            <tr>
+              <td><a href="{% url 'material_detail' s.material.pk %}">{{ s.material.name|truncatechars:35 }}</a></td>
+              <td>{{ s.location }}</td>
+              <td class="text-danger fw-bold">{{ s.qty_available }}</td>
+              <td>{{ s.material.min_stock_level }}</td>
+            </tr>
+            {% empty %}<tr><td colspan="4" class="text-center text-muted py-3">Дефицита нет</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-currency-exchange me-2 text-info"></i>Последние ценовые предложения</div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Материал</th><th>Поставщик</th><th>Цена</th><th>Дата</th></tr></thead>
+          <tbody>
+            {% for q in recent_quotes %}
+            <tr>
+              <td>{{ q.material.name|truncatechars:25 }}</td>
+              <td>{{ q.supplier.name|truncatechars:20 }}</td>
+              <td class="fw-bold">{{ q.price|rubles }}</td>
+              <td>{{ q.quote_date|date:"d.m.Y" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% elif user.role == 'admin' %}
+<div class="row g-3 mb-4">
+  <div class="col-md-2"><div class="stat-card" style="background:linear-gradient(135deg,#6c757d,#495057)">
+    <div class="fs-2 fw-bold">{{ users_count }}</div><div>Пользователей</div></div></div>
+  <div class="col-md-2"><div class="stat-card" style="background:linear-gradient(135deg,#0d6efd,#0a58ca)">
+    <div class="fs-2 fw-bold">{{ materials_count }}</div><div>МТР в каталоге</div></div></div>
+  <div class="col-md-2"><div class="stat-card" style="background:linear-gradient(135deg,#6f42c1,#59359a)">
+    <div class="fs-2 fw-bold">{{ suppliers_count }}</div><div>Поставщиков</div></div></div>
+  <div class="col-md-3"><div class="stat-card" style="background:linear-gradient(135deg,#198754,#146c43)">
+    <div class="fs-2 fw-bold">{{ requests_total }}</div><div>Всего заявок</div></div></div>
+  <div class="col-md-3"><div class="stat-card" style="background:linear-gradient(135deg,#fd7e14,#e85d04)">
+    <div class="fs-2 fw-bold">{{ orders_total }}</div><div>Заказов поставщикам</div></div></div>
+</div>
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header">Заявки по статусам</div>
+      <div class="card-body"><canvas id="statusChart" height="200"></canvas></div>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between">
+        <span><i class="bi bi-journal-text me-2"></i>Последние операции</span>
+        <a href="{% url 'audit_log' %}" class="btn btn-sm btn-outline-secondary">Все</a>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Время</th><th>Пользователь</th><th>Действие</th></tr></thead>
+          <tbody>
+            {% for log in recent_logs %}
+            <tr>
+              <td class="text-muted small">{{ log.timestamp|date:"d.m H:i" }}</td>
+              <td>{{ log.user.username|default:"—" }}</td>
+              <td>{{ log.action|truncatechars:60 }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if user.role == 'admin' %}
+<script>
+const statusData = {{ status_data_json|safe }};
+const ctx = document.getElementById('statusChart');
+if (ctx) {
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(statusData),
+      datasets: [{
+        data: Object.values(statusData),
+        backgroundColor: ['#6c757d','#0d6efd','#198754','#dc3545','#0dcaf0','#212529'],
+      }]
+    },
+    options: { plugins: { legend: { position: 'bottom' } } }
+  });
+}
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% load core_filters %}
+{% block title %}Поставщики{% endblock %}
+{% block breadcrumb_items %}<li class="breadcrumb-item active">Поставщики</li>{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+  <h1><i class="bi bi-truck me-2"></i>Поставщики</h1>
+  {% if user.can_manage_suppliers %}
+  <a href="{% url 'supplier_create' %}" class="btn btn-primary"><i class="bi bi-plus"></i> Добавить поставщика</a>
+  {% endif %}
+</div>
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-5">
+        <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Название или ИНН...">
+      </div>
+      <div class="col-md-2">
+        <select name="active" class="form-select form-select-sm">
+          <option value="1" {% if active_only == '1' %}selected{% endif %}>Только активные</option>
+          <option value="0" {% if active_only == '0' %}selected{% endif %}>Все</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-sm btn-secondary">Найти</button>
+        <a href="{% url 'supplier_list' %}" class="btn btn-sm btn-outline-secondary ms-1">✕</a>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Наименование</th><th>ИНН</th><th>Контакт</th><th>Рейтинг</th><th>Надёжность</th><th>КП</th><th>Заказов</th><th>Статус</th><th></th></tr></thead>
+      <tbody>
+        {% for s in suppliers %}
+        <tr>
+          <td><a href="{% url 'supplier_detail' s.pk %}" class="fw-semibold text-decoration-none">{{ s.name }}</a></td>
+          <td class="text-muted"><code>{{ s.inn }}</code></td>
+          <td>
+            {% if s.contact_person %}<div>{{ s.contact_person }}</div>{% endif %}
+            {% if s.phone %}<div class="small text-muted">{{ s.phone }}</div>{% endif %}
+          </td>
+          <td>
+            <span class="badge bg-{{ s.get_rating_color }} fs-6">{{ s.rating }}</span>
+          </td>
+          <td>{{ s.delivery_reliability }}%</td>
+          <td>{{ s.get_quotes_count }}</td>
+          <td>{{ s.get_orders_count }}</td>
+          <td>
+            {% if s.is_active %}<span class="badge bg-success">Активен</span>
+            {% else %}<span class="badge bg-secondary">Неактивен</span>{% endif %}
+          </td>
+          <td>
+            <a href="{% url 'supplier_detail' s.pk %}" class="btn btn-sm btn-outline-primary">Подробнее</a>
+            {% if user.can_manage_suppliers %}
+            <a href="{% url 'supplier_update' s.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9" class="text-center text-muted py-4">Поставщиков не найдено.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+  {% include 'partials/pagination.html' %}
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load core_filters %}
+{% block title %}Заказы поставщикам{% endblock %}
+{% block breadcrumb_items %}<li class="breadcrumb-item active">Заказы поставщикам</li>{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+  <h1><i class="bi bi-receipt me-2"></i>Заказы поставщикам</h1>
+</div>
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Номер заказа, заявки, поставщик...">
+      </div>
+      <div class="col-md-2">
+        <select name="status" class="form-select form-select-sm">
+          <option value="">Все статусы</option>
+          {% for s, label in status_choices %}
+          <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select name="supplier" class="form-select form-select-sm">
+          <option value="">Все поставщики</option>
+          {% for s in suppliers_all %}
+          <option value="{{ s.pk }}" {% if supplier_filter == s.pk|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-sm btn-secondary">Найти</button>
+        <a href="{% url 'order_list' %}" class="btn btn-sm btn-outline-secondary ms-1">✕</a>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Номер заказа</th><th>Заявка</th><th>Поставщик</th><th>Дата заказа</th><th>Ожид. поставка</th><th>Сумма</th><th>Статус</th><th></th></tr></thead>
+      <tbody>
+        {% for o in orders %}
+        <tr>
+          <td><a href="{% url 'order_detail' o.pk %}" class="fw-semibold text-decoration-none">{{ o.order_number }}</a></td>
+          <td><a href="{% url 'request_detail' o.request.pk %}">{{ o.request.request_number }}</a></td>
+          <td>{{ o.supplier.name }}</td>
+          <td>{{ o.order_date|date:"d.m.Y" }}</td>
+          <td>
+            {{ o.expected_delivery_date|date:"d.m.Y"|default:"—" }}
+            {% if o.is_overdue %}<span class="badge bg-danger ms-1">Просрочен!</span>{% endif %}
+          </td>
+          <td class="fw-bold">{{ o.total_amount|rubles }}</td>
+          <td><span class="badge bg-{{ o.get_status_color }}">{{ o.get_status_display }}</span></td>
+          <td><a href="{% url 'order_detail' o.pk %}" class="btn btn-sm btn-outline-primary">Открыть</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted py-4">Заказов нет.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+  {% include 'partials/pagination.html' %}
+</div>
+{% endblock %}
