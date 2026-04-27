@@ -24,7 +24,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e
-            cd ~/kursachAudio
+            cd /opt/oil_procurement
             echo "==> Pulling latest code..."
             git pull origin main
             echo "==> Checking if dependencies changed..."
