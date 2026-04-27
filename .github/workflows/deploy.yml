@@ -25,6 +25,7 @@ jobs:
           script: |
             set -e
             cd /opt/oil_procurement
+            git config --global --add safe.directory /opt/oil_procurement
             echo "==> Pulling latest code..."
             git pull origin main
             echo "==> Checking if dependencies changed..."
