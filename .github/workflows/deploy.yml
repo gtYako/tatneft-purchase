@@ -24,6 +24,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e
+            chown -R root:root /opt/oil_procurement
             cd /opt/oil_procurement
             git config --global --add safe.directory /opt/oil_procurement
             echo "==> Pulling latest code..."
