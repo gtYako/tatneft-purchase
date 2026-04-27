@@ -24,21 +24,22 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e
-            cd /opt/oil_procurement
-            git config --global --add safe.directory /opt/oil_procurement
-            rm -f .git/FETCH_HEAD
+            REPO=/opt/oil_procurement
+            OWNER=$(stat -c '%U' $REPO)
+            echo "==> Repo owner: $OWNER"
+            sudo -u $OWNER git -C $REPO config --global --add safe.directory $REPO
             echo "==> Pulling latest code..."
-            git pull origin main
+            sudo -u $OWNER git -C $REPO pull origin main
             echo "==> Checking if dependencies changed..."
-            if git diff HEAD~1 HEAD --name-only | grep -qE 'requirements|Dockerfile|docker-compose'; then
+            if sudo -u $OWNER git -C $REPO diff HEAD~1 HEAD --name-only | grep -qE 'requirements|Dockerfile|docker-compose'; then
               echo "==> Rebuilding containers..."
-              docker compose up -d --build
+              docker compose -f $REPO/docker-compose.yml up -d --build
             else
               echo "==> Restarting containers..."
-              docker compose restart backend frontend nginx
+              docker compose -f $REPO/docker-compose.yml restart backend frontend nginx
             fi
             echo "==> Running migrations..."
-            docker compose exec -T backend python manage.py migrate --noinput
+            docker compose -f $REPO/docker-compose.yml exec -T backend python manage.py migrate --noinput
             echo "==> Collecting static files..."
-            docker compose exec -T backend python manage.py collectstatic --noinput
+            docker compose -f $REPO/docker-compose.yml exec -T backend python manage.py collectstatic --noinput
             echo "==> Deploy complete!"
