@@ -36,10 +36,10 @@ export default function Dashboard() {
       {data && (
         <div className="row g-3 mb-4">
           {[
-            { label: 'Заявки', val: data.total_requests, icon: 'file-earmark-text', color: '#1a237e', border: '#1a237e' },
-            { label: 'Заказы', val: data.total_orders, icon: 'cart3', color: '#2e7d32', border: '#2e7d32' },
-            { label: 'Поставщиков', val: data.total_suppliers, icon: 'building', color: '#e65100', border: '#e65100' },
-            { label: 'Ценовых предложений', val: data.total_quotes, icon: 'currency-dollar', color: '#6a1b9a', border: '#6a1b9a' },
+            { label: 'Заявки', val: data.total_requests, icon: 'file-earmark-text', color: '#111827', border: '#111827' },
+            { label: 'Заказы', val: data.total_orders, icon: 'cart3', color: '#374151', border: '#374151' },
+            { label: 'Поставщиков', val: data.total_suppliers, icon: 'building', color: '#4b5563', border: '#4b5563' },
+            { label: 'Ценовых предложений', val: data.total_quotes, icon: 'currency-dollar', color: '#6b7280', border: '#9ca3af' },
           ].map(({ label, val, icon, color, border }) => (
             <div className="col-6 col-lg-3" key={label}>
               <div className="card stat-card h-100" style={{ borderLeftColor: border }}>
