@@ -114,6 +114,54 @@
 
       .table-light { background-color: #f9fafb !important; }
       .table-light th { background-color: #f9fafb !important; }
+
+      /* ── Адаптив: планшеты и мобильные (≤1024px) ── */
+      .btn-sidebar-toggle { display: none; }
+
+      @media (max-width: 1024px) {
+        .sidebar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          height: 100vh;
+          min-height: unset;
+          z-index: 1050;
+          transform: translateX(-100%);
+          transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .sidebar.sidebar-open {
+          transform: translateX(0);
+          box-shadow: 4px 0 24px rgba(0,0,0,0.25);
+        }
+        .sidebar-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.45);
+          z-index: 1040;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.25s;
+        }
+        .sidebar-overlay.active {
+          opacity: 1;
+          pointer-events: all;
+        }
+        .btn-sidebar-toggle {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .main-content { width: 100%; }
+        .p-4 { padding: 1rem !important; }
+        .page-title { font-size: 1.1rem; }
+        .card-body .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      }
+
+      @media (max-width: 600px) {
+        .stat-card .card-body { padding: 0.75rem; }
+        .stat-card .card-body > div:first-child { font-size: 1.4rem !important; }
+        .topbar { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+      }
     </style>
   </head>
   <body>
