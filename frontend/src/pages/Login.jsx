@@ -24,14 +24,14 @@ export default function Login() {
   }
 
   return (
-    <div className="d-flex align-items-center justify-content-center" style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1a237e 0%, #283593 60%, #1565c0 100%)' }}>
-      <div className="card shadow-lg" style={{ width: 400 }}>
+    <div className="d-flex align-items-center justify-content-center" style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #111827 0%, #1f2937 60%, #374151 100%)' }}>
+      <div className="card shadow-lg" style={{ width: 400, border: 'none' }}>
         <div className="card-body p-4">
           <div className="text-center mb-4">
-            <div style={{ fontSize: '2.5rem', color: '#1a237e' }}>
-              <i className="bi bi-droplet-fill text-warning"></i>
+            <div style={{ fontSize: '2.5rem', color: '#374151' }}>
+              <i className="bi bi-droplet-fill" style={{ color: '#6b7280' }}></i>
             </div>
-            <h4 className="fw-bold mt-2 mb-0" style={{ color: '#1a237e' }}>Система закупок МТО</h4>
+            <h4 className="fw-bold mt-2 mb-0" style={{ color: '#111827' }}>Система закупок МТО</h4>
             <div className="text-muted small">Нефтедобывающее предприятие</div>
           </div>
 
