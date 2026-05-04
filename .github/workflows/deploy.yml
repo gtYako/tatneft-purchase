@@ -31,7 +31,7 @@ jobs:
             echo "==> Pulling latest code..."
             sudo -u $OWNER git -C $REPO pull origin main
             echo "==> Checking if dependencies changed..."
-            if sudo -u $OWNER git -C $REPO diff HEAD~1 HEAD --name-only | grep -qE 'requirements|Dockerfile|docker-compose'; then
+            if sudo -u $OWNER git -C $REPO diff HEAD~1 HEAD --name-only | grep -qE 'requirements|Dockerfile|docker-compose|frontend/'; then
               echo "==> Rebuilding containers..."
               docker compose -f $REPO/docker-compose.yml up -d --build
             else
