@@ -10,6 +10,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 import json
+import subprocess
+import threading
+import sys
 
 from .models import (
     CustomUser, Category, Material, WarehouseStock,
@@ -1088,3 +1091,76 @@ def monitoring_summary(request):
             ParsingRun.objects.order_by('-started_at').first()
         ).data if ParsingRun.objects.exists() else None,
     })
+
+
+@api_view(['POST'])
+def parsing_source_toggle(request, pk):
+    """POST /api/parsing-sources/<pk>/toggle/ — включить/выключить источник."""
+    try:
+        source = ParsingSource.objects.get(pk=pk)
+    except ParsingSource.DoesNotExist:
+        return Response({'detail': 'Не найден'}, status=404)
+    source.is_active = not source.is_active
+    source.save(update_fields=['is_active'])
+    return Response({'id': source.id, 'is_active': source.is_active})
+
+
+@api_view(['POST'])
+def supplier_candidate_approve(request, pk):
+    """POST /api/supplier-candidates/<pk>/approve/ — одобрить кандидата."""
+    try:
+        candidate = SupplierCandidate.objects.get(pk=pk, status='new')
+    except SupplierCandidate.DoesNotExist:
+        return Response({'detail': 'Не найден или уже обработан'}, status=404)
+    supplier, _ = Supplier.objects.get_or_create(
+        name=candidate.name,
+        defaults={
+            'inn': f"99{candidate.id:08d}",
+            'notes': f"Создан из кандидата #{candidate.id}. Сайт: {candidate.website}",
+            'is_active': True,
+            'rating': 5.0,
+        },
+    )
+    for catalog_url in (candidate.detected_catalog_urls or [candidate.website])[:3]:
+        if catalog_url and not ParsingSource.objects.filter(supplier=supplier, url=catalog_url).exists():
+            ParsingSource.objects.create(
+                supplier=supplier,
+                name=f"Каталог {candidate.name}",
+                url=catalog_url,
+                source_type='listing',
+                category_hint=candidate.category_hint,
+                is_active=False,
+            )
+    candidate.status = 'approved'
+    candidate.reviewed_at = timezone.now()
+    candidate.save(update_fields=['status', 'reviewed_at'])
+    return Response({'id': candidate.id, 'status': 'approved', 'supplier_id': supplier.id})
+
+
+@api_view(['POST'])
+def supplier_candidate_reject(request, pk):
+    """POST /api/supplier-candidates/<pk>/reject/ — отклонить кандидата."""
+    updated = SupplierCandidate.objects.filter(pk=pk, status='new').update(
+        status='rejected',
+        reviewed_at=timezone.now(),
+    )
+    if not updated:
+        return Response({'detail': 'Не найден или уже обработан'}, status=404)
+    return Response({'id': pk, 'status': 'rejected'})
+
+
+@api_view(['POST'])
+def run_parsing(request):
+    """POST /api/monitoring/run-parsing/ — запустить парсинг из UI."""
+    limit = int(request.data.get('limit', 8))
+
+    def _run():
+        subprocess.run(
+            [sys.executable, 'manage.py', 'parse_supplier_prices', '--limit', str(limit)],
+            cwd='/app',
+            capture_output=True,
+        )
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+    return Response({'status': 'started', 'message': f'Парсинг запущен (limit={limit})'})

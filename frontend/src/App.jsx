@@ -26,10 +26,10 @@ import OrderForm from './pages/orders/OrderForm.jsx'
 import AnalyticsDashboard from './pages/analytics/AnalyticsDashboard.jsx'
 import PriceDynamics from './pages/analytics/PriceDynamics.jsx'
 import ShortageReport from './pages/analytics/ShortageReport.jsx'
-import Reports from './pages/analytics/Reports.jsx'
 import UserList from './pages/admin/UserList.jsx'
 import UserForm from './pages/admin/UserForm.jsx'
 import AuditLog from './pages/admin/AuditLog.jsx'
+import MonitoringPage from './pages/monitoring/MonitoringPage.jsx'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -94,12 +94,11 @@ function AppRoutes() {
               <Route path="/analytics" element={<AnalyticsDashboard />} />
               <Route path="/analytics/prices" element={<PriceDynamics />} />
               <Route path="/analytics/shortage" element={<ShortageReport />} />
-              <Route path="/analytics/reports" element={<Reports />} />
-
               <Route path="/admin/users" element={<UserList />} />
               <Route path="/admin/users/new" element={<UserForm />} />
               <Route path="/admin/users/:pk/edit" element={<UserForm />} />
               <Route path="/admin/audit" element={<AuditLog />} />
+              <Route path="/monitoring" element={<MonitoringPage />} />
             </Routes>
           </Layout>
         </PrivateRoute>

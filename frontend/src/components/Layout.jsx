@@ -23,7 +23,6 @@ export default function Layout({ children }) {
   }
 
   const canSeeAnalytics = ['analyst', 'manager', 'admin', 'purchaser'].includes(user?.role)
-  const canSeeReports   = ['analyst', 'manager', 'admin'].includes(user?.role)
   const canManageCatalog   = ['admin', 'purchaser'].includes(user?.role)
   const canManageSuppliers = ['admin', 'purchaser'].includes(user?.role)
   const canManageWarehouse = ['admin', 'purchaser', 'analyst'].includes(user?.role)
@@ -94,11 +93,6 @@ export default function Layout({ children }) {
             <NavLink to="/analytics/shortage" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={closeSidebar}>
               <i className="bi bi-exclamation-triangle"></i> Дефицит
             </NavLink>
-            {canSeeReports && (
-              <NavLink to="/analytics/reports" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={closeSidebar}>
-                <i className="bi bi-clipboard-data"></i> Отчёты
-              </NavLink>
-            )}
           </>
         )}
 
@@ -110,6 +104,9 @@ export default function Layout({ children }) {
             </NavLink>
             <NavLink to="/admin/audit" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={closeSidebar}>
               <i className="bi bi-journal-text"></i> Журнал операций
+            </NavLink>
+            <NavLink to="/monitoring" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={closeSidebar}>
+              <i className="bi bi-radar"></i> Мониторинг поставщиков
             </NavLink>
           </>
         )}

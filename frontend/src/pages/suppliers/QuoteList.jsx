@@ -38,12 +38,15 @@ export default function QuoteList() {
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="page-title mb-0"><i className="bi bi-currency-dollar me-2"></i>Ценовые предложения (КП)</h1>
-        {canManage && (
-          <Link to="/quotes/new" className="btn btn-primary">
-            <i className="bi bi-plus-lg me-1"></i> Новое КП
-          </Link>
-        )}
+        <div>
+          <h1 className="page-title mb-0"><i className="bi bi-currency-dollar me-2"></i>Ценовые предложения (КП)</h1>
+          {canManage && (
+            <div className="text-muted small mt-1">
+              <i className="bi bi-radar me-1"></i>
+              КП автоматически обновляются парсингом — <a href="/monitoring" className="text-muted">Мониторинг поставщиков</a>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="card mb-3">

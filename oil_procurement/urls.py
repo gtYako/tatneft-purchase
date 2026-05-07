@@ -67,8 +67,12 @@ urlpatterns = [
 
     # ─── Мониторинг поставщиков ───
     path('api/parsing-sources/', api.parsing_sources_list),
+    path('api/parsing-sources/<int:pk>/toggle/', api.parsing_source_toggle),
     path('api/parsed-products/', api.parsed_products_list),
     path('api/supplier-candidates/', api.supplier_candidates_list),
+    path('api/supplier-candidates/<int:pk>/approve/', api.supplier_candidate_approve),
+    path('api/supplier-candidates/<int:pk>/reject/', api.supplier_candidate_reject),
     path('api/parsing-runs/', api.parsing_runs_list),
     path('api/monitoring/summary/', api.monitoring_summary),
+    path('api/monitoring/run-parsing/', api.run_parsing),
 ]

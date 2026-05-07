@@ -24,12 +24,15 @@ export default function SupplierList() {
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="page-title mb-0"><i className="bi bi-building me-2"></i>Поставщики</h1>
-        {canManage && (
-          <Link to="/suppliers/new" className="btn btn-primary">
-            <i className="bi bi-plus-lg me-1"></i> Новый поставщик
-          </Link>
-        )}
+        <div>
+          <h1 className="page-title mb-0"><i className="bi bi-building me-2"></i>Поставщики</h1>
+          {canManage && (
+            <div className="text-muted small mt-1">
+              <i className="bi bi-radar me-1"></i>
+              Новые поставщики добавляются через <a href="/monitoring" className="text-muted">Мониторинг → Кандидаты</a>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="card mb-3">
