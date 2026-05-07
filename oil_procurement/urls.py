@@ -64,4 +64,11 @@ urlpatterns = [
     path('api/admin/users/', api.user_list_create),
     path('api/admin/users/<int:pk>/', api.user_detail),
     path('api/admin/audit/', api.audit_log_list),
+
+    # ─── Мониторинг поставщиков ───
+    path('api/parsing-sources/', api.parsing_sources_list),
+    path('api/parsed-products/', api.parsed_products_list),
+    path('api/supplier-candidates/', api.supplier_candidates_list),
+    path('api/parsing-runs/', api.parsing_runs_list),
+    path('api/monitoring/summary/', api.monitoring_summary),
 ]

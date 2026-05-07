@@ -2,7 +2,9 @@ from rest_framework import serializers
 from .models import (
     CustomUser, Category, Material, WarehouseStock,
     Supplier, PriceQuote, PurchaseRequest, RequestItem,
-    PurchaseOrder, AuditLog
+    PurchaseOrder, AuditLog,
+    ParsingSource, ParsedProduct, ParsingRun,
+    SupplierCandidate, SupplierDiscoveryRun,
 )
 
 
@@ -311,3 +313,77 @@ class ComparisonQuoteSerializer(serializers.Serializer):
     is_recommended = serializers.BooleanField()
     is_selected = serializers.BooleanField()
     supplier_rating = serializers.DecimalField(source='quote.supplier.rating', max_digits=3, decimal_places=1)
+
+
+# ─────────────────── МОНИТОРИНГ ПОСТАВЩИКОВ ───────────────────
+
+class ParsingSourceSerializer(serializers.ModelSerializer):
+    supplier_name = serializers.CharField(source='supplier.name', read_only=True)
+    has_error = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ParsingSource
+        fields = [
+            'id', 'supplier', 'supplier_name', 'name', 'url', 'source_type',
+            'category_hint', 'is_active', 'parser_strategy',
+            'request_delay_seconds', 'max_items_per_run',
+            'last_parsed_at', 'last_success_at', 'last_error',
+            'has_error', 'created_at', 'updated_at',
+        ]
+
+    def get_has_error(self, obj):
+        return bool(obj.last_error)
+
+
+class ParsedProductSerializer(serializers.ModelSerializer):
+    supplier_name = serializers.CharField(source='supplier.name', read_only=True)
+    material_code = serializers.CharField(source='material.code', read_only=True, default=None)
+    material_name = serializers.CharField(source='material.name', read_only=True, default=None)
+    source_name = serializers.CharField(source='source.name', read_only=True)
+
+    class Meta:
+        model = ParsedProduct
+        fields = [
+            'id', 'source', 'source_name', 'supplier', 'supplier_name',
+            'material', 'material_code', 'material_name',
+            'external_name', 'normalized_name', 'external_code',
+            'category_detected', 'price', 'currency',
+            'availability', 'delivery_days', 'manufacturer',
+            'product_url', 'characteristics',
+            'match_score', 'ai_comment', 'parsed_at',
+        ]
+
+
+class SupplierCandidateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SupplierCandidate
+        fields = [
+            'id', 'name', 'website', 'category_hint', 'status',
+            'confidence_score', 'reason', 'created_at', 'reviewed_at',
+            'has_prices', 'has_contacts', 'has_requisites',
+            'has_delivery_rf', 'has_product_cards',
+            'site_status_code', 'site_response_time_ms',
+            'supplier_score', 'risk_flags',
+            'detected_categories', 'detected_catalog_urls',
+        ]
+
+
+class ParsingRunSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ParsingRun
+        fields = [
+            'id', 'started_at', 'finished_at', 'status',
+            'sources_total', 'sources_success', 'sources_failed',
+            'products_found', 'quotes_created', 'quotes_updated',
+            'error_log',
+        ]
+
+
+class SupplierDiscoveryRunSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SupplierDiscoveryRun
+        fields = [
+            'id', 'started_at', 'finished_at', 'status',
+            'queries_total', 'candidates_found',
+            'candidates_created', 'candidates_updated', 'error_log',
+        ]

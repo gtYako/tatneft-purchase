@@ -544,3 +544,203 @@ class AuditLog(models.Model):
     def __str__(self):
         ts = self.timestamp.strftime('%d.%m.%Y %H:%M') if self.timestamp else '—'
         return f"{ts} — {self.user} — {self.action}"
+
+
+# ─────────────────── МОНИТОРИНГ ПОСТАВЩИКОВ ───────────────────
+
+class ParsingSource(models.Model):
+    SOURCE_TYPE_CHOICES = [
+        ('product', 'Карточка товара'),
+        ('listing', 'Листинг категории'),
+        ('search', 'Страница поиска'),
+    ]
+
+    supplier = models.ForeignKey(
+        Supplier, on_delete=models.CASCADE,
+        related_name='parsing_sources', verbose_name='Поставщик'
+    )
+    name = models.CharField(max_length=200, verbose_name='Название источника')
+    url = models.URLField(max_length=500, verbose_name='URL')
+    source_type = models.CharField(
+        max_length=20, choices=SOURCE_TYPE_CHOICES,
+        default='listing', verbose_name='Тип источника'
+    )
+    category_hint = models.CharField(max_length=200, blank=True, verbose_name='Подсказка категории')
+    is_active = models.BooleanField(default=True, verbose_name='Активен')
+    parser_strategy = models.CharField(max_length=50, default='generic', verbose_name='Стратегия парсинга')
+    request_delay_seconds = models.PositiveIntegerField(default=3, verbose_name='Задержка, сек')
+    max_items_per_run = models.PositiveIntegerField(default=10, verbose_name='Макс. товаров за запуск')
+    last_parsed_at = models.DateTimeField(null=True, blank=True, verbose_name='Последний парсинг')
+    last_success_at = models.DateTimeField(null=True, blank=True, verbose_name='Последний успешный парсинг')
+    last_error = models.TextField(blank=True, verbose_name='Последняя ошибка')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Источник парсинга'
+        verbose_name_plural = 'Источники парсинга'
+        ordering = ['-is_active', 'supplier__name']
+
+    def __str__(self):
+        return f"{self.supplier.name} — {self.name}"
+
+
+class ParsedProduct(models.Model):
+    source = models.ForeignKey(
+        ParsingSource, on_delete=models.CASCADE,
+        related_name='parsed_products', verbose_name='Источник'
+    )
+    supplier = models.ForeignKey(
+        Supplier, on_delete=models.CASCADE,
+        related_name='parsed_products', verbose_name='Поставщик'
+    )
+    material = models.ForeignKey(
+        Material, on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='parsed_products', verbose_name='Материал (сопоставлен)'
+    )
+    external_name = models.CharField(max_length=500, verbose_name='Наименование на сайте')
+    normalized_name = models.CharField(max_length=500, blank=True, verbose_name='Нормализованное наименование')
+    external_code = models.CharField(max_length=100, blank=True, verbose_name='Артикул / код на сайте')
+    category_detected = models.CharField(max_length=200, blank=True, verbose_name='Категория (определена)')
+    price = models.DecimalField(
+        max_digits=14, decimal_places=2,
+        null=True, blank=True, verbose_name='Цена, руб.'
+    )
+    currency = models.CharField(max_length=10, default='RUB', verbose_name='Валюта')
+    availability = models.CharField(max_length=100, blank=True, verbose_name='Наличие')
+    delivery_days = models.PositiveIntegerField(null=True, blank=True, verbose_name='Срок поставки, дней')
+    manufacturer = models.CharField(max_length=200, blank=True, verbose_name='Производитель')
+    product_url = models.URLField(max_length=500, blank=True, verbose_name='URL товара')
+    characteristics = models.JSONField(default=dict, blank=True, verbose_name='Характеристики')
+    match_score = models.FloatField(default=0.0, verbose_name='Оценка сопоставления')
+    ai_comment = models.TextField(blank=True, verbose_name='Комментарий ИИ-сопоставления')
+    raw_data = models.JSONField(default=dict, blank=True, verbose_name='Сырые данные')
+    parsed_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата парсинга')
+
+    class Meta:
+        verbose_name = 'Найденный товар'
+        verbose_name_plural = 'Найденные товары'
+        ordering = ['-parsed_at']
+
+    def __str__(self):
+        return f"{self.supplier.name} — {self.external_name[:60]}"
+
+
+class ParsingRun(models.Model):
+    STATUS_CHOICES = [
+        ('running', 'Выполняется'),
+        ('success', 'Успешно'),
+        ('partial', 'Частично'),
+        ('failed', 'Ошибка'),
+    ]
+
+    started_at = models.DateTimeField(auto_now_add=True, verbose_name='Начало')
+    finished_at = models.DateTimeField(null=True, blank=True, verbose_name='Конец')
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES,
+        default='running', verbose_name='Статус'
+    )
+    sources_total = models.PositiveIntegerField(default=0, verbose_name='Источников всего')
+    sources_success = models.PositiveIntegerField(default=0, verbose_name='Источников успешно')
+    sources_failed = models.PositiveIntegerField(default=0, verbose_name='Источников с ошибкой')
+    products_found = models.PositiveIntegerField(default=0, verbose_name='Товаров найдено')
+    quotes_created = models.PositiveIntegerField(default=0, verbose_name='Предложений создано')
+    quotes_updated = models.PositiveIntegerField(default=0, verbose_name='Предложений обновлено')
+    error_log = models.TextField(blank=True, verbose_name='Журнал ошибок')
+
+    class Meta:
+        verbose_name = 'Запуск парсинга'
+        verbose_name_plural = 'Запуски парсинга'
+        ordering = ['-started_at']
+
+    def __str__(self):
+        ts = self.started_at.strftime('%d.%m.%Y %H:%M') if self.started_at else '—'
+        return f"Парсинг {ts} — {self.get_status_display()}"
+
+
+class SupplierCandidate(models.Model):
+    STATUS_CHOICES = [
+        ('new', 'Новый'),
+        ('approved', 'Одобрен'),
+        ('rejected', 'Отклонён'),
+    ]
+
+    name = models.CharField(max_length=500, verbose_name='Название')
+    website = models.URLField(max_length=500, verbose_name='Сайт')
+    category_hint = models.CharField(max_length=200, blank=True, verbose_name='Подсказка категории')
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES,
+        default='new', verbose_name='Статус'
+    )
+    confidence_score = models.FloatField(default=0.0, verbose_name='Оценка уверенности')
+    reason = models.TextField(blank=True, verbose_name='Обоснование')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создан')
+    reviewed_at = models.DateTimeField(null=True, blank=True, verbose_name='Проверен')
+
+    # Discovery analysis fields
+    detected_contacts = models.JSONField(default=dict, blank=True, verbose_name='Контакты')
+    detected_categories = models.JSONField(default=list, blank=True, verbose_name='Категории')
+    detected_catalog_urls = models.JSONField(default=list, blank=True, verbose_name='URL каталогов')
+    detected_product_urls = models.JSONField(default=list, blank=True, verbose_name='URL товаров')
+    has_prices = models.BooleanField(default=False, verbose_name='Есть цены')
+    has_contacts = models.BooleanField(default=False, verbose_name='Есть контакты')
+    has_requisites = models.BooleanField(default=False, verbose_name='Есть реквизиты/ИНН')
+    has_delivery_rf = models.BooleanField(default=False, verbose_name='Доставка по РФ')
+    has_product_cards = models.BooleanField(default=False, verbose_name='Есть карточки товаров')
+    site_status_code = models.PositiveIntegerField(null=True, blank=True, verbose_name='HTTP статус сайта')
+    site_response_time_ms = models.PositiveIntegerField(null=True, blank=True, verbose_name='Время ответа, мс')
+    supplier_score = models.FloatField(default=0.0, verbose_name='Рейтинг поставщика')
+    risk_flags = models.JSONField(default=list, blank=True, verbose_name='Риски')
+
+    class Meta:
+        verbose_name = 'Кандидат поставщика'
+        verbose_name_plural = 'Кандидаты поставщиков'
+        ordering = ['-supplier_score', 'name']
+
+    def __str__(self):
+        return f"{self.name} ({self.website})"
+
+
+class SupplierDiscoveryQuery(models.Model):
+    query = models.CharField(max_length=500, verbose_name='Поисковый запрос')
+    is_active = models.BooleanField(default=True, verbose_name='Активен')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Запрос поиска поставщиков'
+        verbose_name_plural = 'Запросы поиска поставщиков'
+        ordering = ['query']
+
+    def __str__(self):
+        return self.query
+
+
+class SupplierDiscoveryRun(models.Model):
+    STATUS_CHOICES = [
+        ('running', 'Выполняется'),
+        ('success', 'Успешно'),
+        ('partial', 'Частично'),
+        ('failed', 'Ошибка'),
+    ]
+
+    started_at = models.DateTimeField(auto_now_add=True, verbose_name='Начало')
+    finished_at = models.DateTimeField(null=True, blank=True, verbose_name='Конец')
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES,
+        default='running', verbose_name='Статус'
+    )
+    queries_total = models.PositiveIntegerField(default=0, verbose_name='Запросов всего')
+    candidates_found = models.PositiveIntegerField(default=0, verbose_name='Кандидатов найдено')
+    candidates_created = models.PositiveIntegerField(default=0, verbose_name='Кандидатов создано')
+    candidates_updated = models.PositiveIntegerField(default=0, verbose_name='Кандидатов обновлено')
+    error_log = models.TextField(blank=True, verbose_name='Журнал ошибок')
+
+    class Meta:
+        verbose_name = 'Запуск поиска поставщиков'
+        verbose_name_plural = 'Запуски поиска поставщиков'
+        ordering = ['-started_at']
+
+    def __str__(self):
+        ts = self.started_at.strftime('%d.%m.%Y %H:%M') if self.started_at else '—'
+        return f"Discovery {ts} — {self.get_status_display()}"

@@ -14,7 +14,9 @@ import json
 from .models import (
     CustomUser, Category, Material, WarehouseStock,
     Supplier, PriceQuote, PurchaseRequest, RequestItem,
-    PurchaseOrder, AuditLog
+    PurchaseOrder, AuditLog,
+    ParsingSource, ParsedProduct, ParsingRun,
+    SupplierCandidate, SupplierDiscoveryRun,
 )
 from .serializers import (
     UserSerializer, UserShortSerializer, UserCreateSerializer, UserEditSerializer,
@@ -23,6 +25,8 @@ from .serializers import (
     PriceQuoteSerializer, PurchaseRequestSerializer, PurchaseRequestListSerializer,
     RequestItemSerializer, PurchaseOrderSerializer, AuditLogSerializer,
     ComparisonQuoteSerializer,
+    ParsingSourceSerializer, ParsedProductSerializer,
+    SupplierCandidateSerializer, ParsingRunSerializer, SupplierDiscoveryRunSerializer,
 )
 
 
@@ -1010,4 +1014,77 @@ def order_prefill(request, request_pk):
         'suppliers': SupplierShortSerializer(list(suppliers_used), many=True).data,
         'total_amount': round(total, 2),
         'order_date': str(timezone.now().date()),
+    })
+
+
+# ─────────────────── МОНИТОРИНГ ПОСТАВЩИКОВ ───────────────────
+
+@api_view(['GET'])
+def parsing_sources_list(request):
+    """GET /api/parsing-sources/ — список источников парсинга."""
+    qs = ParsingSource.objects.select_related('supplier').order_by('-is_active', 'supplier__name')
+    supplier_id = request.GET.get('supplier', '')
+    active_only = request.GET.get('active', '')
+    if supplier_id:
+        qs = qs.filter(supplier_id=supplier_id)
+    if active_only == '1':
+        qs = qs.filter(is_active=True)
+    pag = StandardPagination()
+    page = pag.paginate_queryset(qs, request)
+    return pag.get_paginated_response(ParsingSourceSerializer(page, many=True).data)
+
+
+@api_view(['GET'])
+def parsed_products_list(request):
+    """GET /api/parsed-products/ — список найденных товаров."""
+    qs = ParsedProduct.objects.select_related('supplier', 'material', 'source').order_by('-parsed_at')
+    supplier_id = request.GET.get('supplier', '')
+    source_id = request.GET.get('source', '')
+    matched_only = request.GET.get('matched', '')
+    q = request.GET.get('q', '')
+    if supplier_id:
+        qs = qs.filter(supplier_id=supplier_id)
+    if source_id:
+        qs = qs.filter(source_id=source_id)
+    if matched_only == '1':
+        qs = qs.filter(material__isnull=False)
+    if q:
+        qs = qs.filter(external_name__icontains=q)
+    pag = StandardPagination()
+    page = pag.paginate_queryset(qs, request)
+    return pag.get_paginated_response(ParsedProductSerializer(page, many=True).data)
+
+
+@api_view(['GET'])
+def supplier_candidates_list(request):
+    """GET /api/supplier-candidates/ — список кандидатов поставщиков."""
+    qs = SupplierCandidate.objects.order_by('-supplier_score', 'name')
+    status_f = request.GET.get('status', '')
+    if status_f:
+        qs = qs.filter(status=status_f)
+    pag = StandardPagination()
+    page = pag.paginate_queryset(qs, request)
+    return pag.get_paginated_response(SupplierCandidateSerializer(page, many=True).data)
+
+
+@api_view(['GET'])
+def parsing_runs_list(request):
+    """GET /api/parsing-runs/ — история запусков парсинга."""
+    qs = ParsingRun.objects.order_by('-started_at')[:50]
+    return Response(ParsingRunSerializer(qs, many=True).data)
+
+
+@api_view(['GET'])
+def monitoring_summary(request):
+    """GET /api/monitoring/summary/ — сводка по модулю мониторинга."""
+    return Response({
+        'parsing_sources_total': ParsingSource.objects.count(),
+        'parsing_sources_active': ParsingSource.objects.filter(is_active=True).count(),
+        'parsed_products_total': ParsedProduct.objects.count(),
+        'parsed_products_matched': ParsedProduct.objects.filter(material__isnull=False).count(),
+        'supplier_candidates_new': SupplierCandidate.objects.filter(status='new').count(),
+        'supplier_candidates_total': SupplierCandidate.objects.count(),
+        'last_run': ParsingRunSerializer(
+            ParsingRun.objects.order_by('-started_at').first()
+        ).data if ParsingRun.objects.exists() else None,
     })
