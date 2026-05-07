@@ -1164,3 +1164,92 @@ def run_parsing(request):
     thread = threading.Thread(target=_run, daemon=True)
     thread.start()
     return Response({'status': 'started', 'message': f'Парсинг запущен (limit={limit})'})
+
+
+# ─────────────────── AI АНАЛИТИКА ───────────────────
+
+@api_view(['POST'])
+def ai_explain_prices(request):
+    """POST /api/ai/explain-prices/ — объяснить динамику цен через GPT."""
+    from django.conf import settings
+
+    material_id = request.data.get('material_id')
+    if not material_id:
+        return Response({'detail': 'material_id обязателен'}, status=400)
+
+    api_key = settings.OPENAI_API_KEY
+    if not api_key:
+        return Response({'detail': 'OPENAI_API_KEY не настроен'}, status=503)
+
+    try:
+        material = Material.objects.get(pk=material_id)
+    except Material.DoesNotExist:
+        return Response({'detail': 'Материал не найден'}, status=404)
+
+    # Собираем историю цен по всем поставщикам
+    quotes = (
+        PriceQuote.objects
+        .filter(material=material)
+        .select_related('supplier')
+        .order_by('quote_date')
+        .values('supplier__name', 'quote_date', 'price')
+    )
+
+    if not quotes:
+        return Response({'detail': 'Нет данных о ценах для этого материала'}, status=400)
+
+    # Формируем текст с данными для GPT
+    lines = []
+    for q in quotes:
+        lines.append(f"  {q['quote_date']} | {q['supplier__name']} | {q['price']} ₽")
+    prices_text = '\n'.join(lines)
+
+    prompt = f"""Ты аналитик закупок нефтедобывающего предприятия. Тебе предоставлена история цен на материал.
+
+Материал: {material.code} — {material.name}
+Категория: {material.category.name if material.category else 'не указана'}
+
+История цен (дата | поставщик | цена):
+{prices_text}
+
+Задачи:
+1. Объясни динамику цен простым языком: что происходило, у каких поставщиков цены росли/падали, есть ли аномалии.
+2. Дай прогноз цены на следующие 1-3 месяца с обоснованием.
+3. Дай практическую рекомендацию закупщику: у кого покупать сейчас, стоит ли ждать снижения.
+
+Отвечай строго в формате JSON (без markdown, без ```json):
+{{
+  "analysis": "текст анализа 3-5 предложений",
+  "forecast": "текст прогноза 2-3 предложения с конкретными цифрами",
+  "recommendation": "конкретная рекомендация закупщику 1-2 предложения",
+  "trend": "up | down | stable",
+  "risk_level": "low | medium | high"
+}}"""
+
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+        completion = client.chat.completions.create(
+            model='gpt-4o-mini',
+            messages=[{'role': 'user', 'content': prompt}],
+            temperature=0.3,
+            max_tokens=800,
+        )
+        raw = completion.choices[0].message.content.strip()
+        result = json.loads(raw)
+        result['material_name'] = f"{material.code} — {material.name}"
+        result['data_points'] = len(quotes)
+        return Response(result)
+    except json.JSONDecodeError:
+        # GPT вернул не JSON — отдаём как plain text
+        return Response({
+            'analysis': raw,
+            'forecast': '',
+            'recommendation': '',
+            'trend': 'stable',
+            'risk_level': 'medium',
+            'material_name': f"{material.code} — {material.name}",
+            'data_points': len(quotes),
+        })
+    except Exception as exc:
+        return Response({'detail': f'Ошибка GPT: {exc}'}, status=502)

@@ -75,4 +75,7 @@ urlpatterns = [
     path('api/parsing-runs/', api.parsing_runs_list),
     path('api/monitoring/summary/', api.monitoring_summary),
     path('api/monitoring/run-parsing/', api.run_parsing),
+
+    # ─── AI аналитика ───
+    path('api/ai/explain-prices/', api.ai_explain_prices),
 ]

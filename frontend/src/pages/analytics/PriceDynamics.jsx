@@ -8,6 +8,104 @@ import {
 
 const LINE_COLORS = ['#1a237e', '#e65100', '#2e7d32', '#6a1b9a', '#00838f', '#ad1457', '#f57f17']
 
+const TREND_ICON = { up: '📈', down: '📉', stable: '➡️' }
+const TREND_LABEL = { up: 'Рост', down: 'Снижение', stable: 'Стабильно' }
+const RISK_COLOR = { low: 'success', medium: 'warning', high: 'danger' }
+const RISK_LABEL = { low: 'Низкий риск', medium: 'Средний риск', high: 'Высокий риск' }
+
+function AiCard({ materialId }) {
+  const [ai, setAi] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const explain = async () => {
+    setLoading(true)
+    setError('')
+    setAi(null)
+    try {
+      const r = await axios.post('/api/ai/explain-prices/', { material_id: materialId })
+      setAi(r.data)
+    } catch (e) {
+      setError(e.response?.data?.detail || 'Ошибка запроса к GPT')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="card mt-4">
+      <div className="card-header bg-white d-flex align-items-center justify-content-between">
+        <div className="fw-semibold">
+          <i className="bi bi-stars me-2 text-warning"></i>
+          Анализ и прогноз от GPT-4o mini
+        </div>
+        <button className="btn btn-sm btn-primary" onClick={explain} disabled={loading}>
+          {loading
+            ? <><span className="spinner-border spinner-border-sm me-1" />Анализирую…</>
+            : <><i className="bi bi-stars me-1"></i>Объяснить динамику</>}
+        </button>
+      </div>
+
+      {error && (
+        <div className="card-body">
+          <div className="alert alert-danger mb-0 py-2">{error}</div>
+        </div>
+      )}
+
+      {!ai && !loading && !error && (
+        <div className="card-body text-muted small">
+          Нажмите кнопку — GPT проанализирует историю цен и даст прогноз на 1–3 месяца.
+        </div>
+      )}
+
+      {ai && (
+        <div className="card-body">
+          <div className="row g-2 mb-3">
+            <div className="col-auto">
+              <span className="badge bg-secondary fs-6">
+                {TREND_ICON[ai.trend]} {TREND_LABEL[ai.trend]}
+              </span>
+            </div>
+            <div className="col-auto">
+              <span className={`badge bg-${RISK_COLOR[ai.risk_level]} fs-6`}>
+                {RISK_LABEL[ai.risk_level]}
+              </span>
+            </div>
+            <div className="col-auto text-muted small d-flex align-items-center">
+              На основе {ai.data_points} точек данных
+            </div>
+          </div>
+
+          <div className="mb-3">
+            <div className="fw-semibold small text-muted mb-1">
+              <i className="bi bi-bar-chart me-1"></i>АНАЛИЗ
+            </div>
+            <p className="mb-0">{ai.analysis}</p>
+          </div>
+
+          {ai.forecast && (
+            <div className="mb-3 p-3 rounded" style={{ background: '#f0f4ff' }}>
+              <div className="fw-semibold small text-primary mb-1">
+                <i className="bi bi-graph-up-arrow me-1"></i>ПРОГНОЗ НА 1–3 МЕСЯЦА
+              </div>
+              <p className="mb-0">{ai.forecast}</p>
+            </div>
+          )}
+
+          {ai.recommendation && (
+            <div className="p-3 rounded" style={{ background: '#f0fff4' }}>
+              <div className="fw-semibold small text-success mb-1">
+                <i className="bi bi-lightbulb me-1"></i>РЕКОМЕНДАЦИЯ ЗАКУПЩИКУ
+              </div>
+              <p className="mb-0 fw-semibold">{ai.recommendation}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function PriceDynamics() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [apiData, setApiData] = useState(null)
@@ -92,7 +190,7 @@ export default function PriceDynamics() {
       )}
 
       {!loading && selected && chartData.length > 0 && (
-        <div className="card">
+        <div className="card mb-4">
           <div className="card-header bg-white fw-semibold">Данные по поставщикам</div>
           <div className="card-body p-0">
             <table className="table table-sm mb-0">
@@ -127,6 +225,10 @@ export default function PriceDynamics() {
             </table>
           </div>
         </div>
+      )}
+
+      {!loading && selected && chartData.length > 0 && (
+        <AiCard materialId={selected} />
       )}
 
       {!loading && selected && chartData.length === 0 && (
