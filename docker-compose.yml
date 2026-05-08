@@ -39,7 +39,7 @@ services:
       POSTGRES_PORT: "5432"
       CSRF_TRUSTED_ORIGINS: "https://almetpt-tatneft.online,https://www.almetpt-tatneft.online"
       CORS_ALLOWED_ORIGINS: "https://almetpt-tatneft.online,https://www.almetpt-tatneft.online"
-      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      GROQ_API_KEY: "${GROQ_API_KEY}"
     volumes:
       - oil_static:/app/staticfiles
 

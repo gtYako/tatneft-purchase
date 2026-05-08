@@ -1177,9 +1177,9 @@ def ai_explain_prices(request):
     if not material_id:
         return Response({'detail': 'material_id обязателен'}, status=400)
 
-    api_key = settings.OPENAI_API_KEY
+    api_key = settings.GROQ_API_KEY
     if not api_key:
-        return Response({'detail': 'OPENAI_API_KEY не настроен'}, status=503)
+        return Response({'detail': 'GROQ_API_KEY не настроен'}, status=503)
 
     try:
         material = Material.objects.get(pk=material_id)
@@ -1227,10 +1227,10 @@ def ai_explain_prices(request):
 }}"""
 
     try:
-        from openai import OpenAI
-        client = OpenAI(api_key=api_key)
+        from groq import Groq
+        client = Groq(api_key=api_key)
         completion = client.chat.completions.create(
-            model='gpt-4o-mini',
+            model='llama-3.3-70b-versatile',
             messages=[{'role': 'user', 'content': prompt}],
             temperature=0.3,
             max_tokens=800,
