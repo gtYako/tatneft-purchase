@@ -1177,9 +1177,9 @@ def ai_explain_prices(request):
     if not material_id:
         return Response({'detail': 'material_id обязателен'}, status=400)
 
-    api_key = settings.GEMINI_API_KEY
+    api_key = settings.GIGACHAT_AUTH_KEY
     if not api_key:
-        return Response({'detail': 'GEMINI_API_KEY не настроен'}, status=503)
+        return Response({'detail': 'GIGACHAT_AUTH_KEY не настроен'}, status=503)
 
     try:
         material = Material.objects.get(pk=material_id)
@@ -1227,11 +1227,40 @@ def ai_explain_prices(request):
 }}"""
 
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash-8b')
-        response = model.generate_content(prompt)
-        raw = response.text.strip()
+        import uuid
+        # Получаем access token
+        token_resp = requests.post(
+            'https://ngw.devices.sberbank.ru:9443/api/v2/oauth',
+            headers={
+                'Authorization': f'Basic {api_key}',
+                'RqUID': str(uuid.uuid4()),
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            data={'scope': 'GIGACHAT_API_PERS'},
+            verify=False,
+            timeout=15,
+        )
+        token_resp.raise_for_status()
+        access_token = token_resp.json()['access_token']
+
+        # Вызываем GigaChat
+        chat_resp = requests.post(
+            'https://gigachat.devices.sberbank.ru/api/v1/chat/completions',
+            headers={
+                'Authorization': f'Bearer {access_token}',
+                'Content-Type': 'application/json',
+            },
+            json={
+                'model': 'GigaChat',
+                'messages': [{'role': 'user', 'content': prompt}],
+                'temperature': 0.3,
+                'max_tokens': 800,
+            },
+            verify=False,
+            timeout=30,
+        )
+        chat_resp.raise_for_status()
+        raw = chat_resp.json()['choices'][0]['message']['content'].strip()
         # убрать markdown-блоки если модель их добавила
         if raw.startswith('```'):
             raw = raw.split('```')[1]

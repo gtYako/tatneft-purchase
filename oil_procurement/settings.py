@@ -10,7 +10,7 @@ SECRET_KEY = os.getenv(
 
 DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() in {'1', 'true', 'yes', 'on'}
 
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+GIGACHAT_AUTH_KEY = os.getenv('GIGACHAT_AUTH_KEY', '')
 
 ALLOWED_HOSTS = [
     host.strip() for host in os.getenv('DJANGO_ALLOWED_HOSTS', '*').split(',') if host.strip()
