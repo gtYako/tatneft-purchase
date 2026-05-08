@@ -1229,7 +1229,7 @@ def ai_explain_prices(request):
     try:
         import google.generativeai as genai
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        model = genai.GenerativeModel('gemini-1.5-flash-8b')
         response = model.generate_content(prompt)
         raw = response.text.strip()
         # убрать markdown-блоки если модель их добавила
