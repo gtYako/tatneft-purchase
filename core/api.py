@@ -1177,9 +1177,9 @@ def ai_explain_prices(request):
     if not material_id:
         return Response({'detail': 'material_id обязателен'}, status=400)
 
-    api_key = settings.GROQ_API_KEY
+    api_key = settings.GEMINI_API_KEY
     if not api_key:
-        return Response({'detail': 'GROQ_API_KEY не настроен'}, status=503)
+        return Response({'detail': 'GEMINI_API_KEY не настроен'}, status=503)
 
     try:
         material = Material.objects.get(pk=material_id)
@@ -1227,15 +1227,16 @@ def ai_explain_prices(request):
 }}"""
 
     try:
-        from groq import Groq
-        client = Groq(api_key=api_key)
-        completion = client.chat.completions.create(
-            model='llama-3.3-70b-versatile',
-            messages=[{'role': 'user', 'content': prompt}],
-            temperature=0.3,
-            max_tokens=800,
-        )
-        raw = completion.choices[0].message.content.strip()
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(prompt)
+        raw = response.text.strip()
+        # убрать markdown-блоки если модель их добавила
+        if raw.startswith('```'):
+            raw = raw.split('```')[1]
+            if raw.startswith('json'):
+                raw = raw[4:]
         result = json.loads(raw)
         result['material_name'] = f"{material.code} — {material.name}"
         result['data_points'] = len(quotes)
