@@ -37,7 +37,7 @@ function AiCard({ materialId }) {
       <div className="card-header bg-white d-flex align-items-center justify-content-between">
         <div className="fw-semibold">
           <i className="bi bi-stars me-2 text-warning"></i>
-          Анализ и прогноз от GPT-4o mini
+          Анализ и прогноз от GigaChat AI
         </div>
         <button className="btn btn-sm btn-primary" onClick={explain} disabled={loading}>
           {loading
