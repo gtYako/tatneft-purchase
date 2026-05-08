@@ -82,7 +82,7 @@ function TabSummary({ summary, onRefresh }) {
               {[
                 { label: 'Начало', value: new Date(lr.started_at).toLocaleString('ru') },
                 { label: 'Статус', value: lr.status === 'done' ? '✅ Завершён' : lr.status === 'running' ? '🔄 Выполняется' : '❌ Ошибка' },
-                { label: 'Источников', value: lr.sources_count ?? '—' },
+                { label: 'Источников', value: lr.sources_total ?? '—' },
                 { label: 'Товаров найдено', value: lr.products_found ?? '—' },
                 { label: 'КП создано', value: lr.quotes_created ?? '—' },
               ].map(c => (
@@ -308,7 +308,7 @@ function TabRuns() {
                     <td className="ps-3 small">{new Date(r.started_at).toLocaleString('ru')}</td>
                     <td className="small text-muted">{r.finished_at ? new Date(r.finished_at).toLocaleString('ru') : '—'}</td>
                     <td className="text-center">{statusBadge(r.status)}</td>
-                    <td className="text-center small">{r.sources_count ?? '—'}</td>
+                    <td className="text-center small">{r.sources_total ?? '—'}</td>
                     <td className="text-center small">{r.products_found ?? '—'}</td>
                     <td className="text-center small">{r.quotes_created ?? '—'}</td>
                   </tr>
