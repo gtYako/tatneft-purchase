@@ -54,6 +54,12 @@ def log_action(request, action, obj=None, details=''):
     )
 
 
+def require_admin(request):
+    if request.user.role != 'admin':
+        return Response({'detail': 'Нет прав'}, status=403)
+    return None
+
+
 # ─────────────────── AUTH ───────────────────
 
 @api_view(['GET'])
@@ -1026,6 +1032,9 @@ def order_prefill(request, request_pk):
 @api_view(['GET'])
 def parsing_sources_list(request):
     """GET /api/parsing-sources/ — список источников парсинга."""
+    denied = require_admin(request)
+    if denied:
+        return denied
     qs = ParsingSource.objects.select_related('supplier').order_by('-is_active', 'supplier__name')
     supplier_id = request.GET.get('supplier', '')
     active_only = request.GET.get('active', '')
@@ -1041,6 +1050,9 @@ def parsing_sources_list(request):
 @api_view(['GET'])
 def parsed_products_list(request):
     """GET /api/parsed-products/ — список найденных товаров."""
+    denied = require_admin(request)
+    if denied:
+        return denied
     qs = ParsedProduct.objects.select_related('supplier', 'material', 'source').order_by('-parsed_at')
     supplier_id = request.GET.get('supplier', '')
     source_id = request.GET.get('source', '')
@@ -1062,6 +1074,9 @@ def parsed_products_list(request):
 @api_view(['GET'])
 def supplier_candidates_list(request):
     """GET /api/supplier-candidates/ — список кандидатов поставщиков."""
+    denied = require_admin(request)
+    if denied:
+        return denied
     qs = SupplierCandidate.objects.order_by('-supplier_score', 'name')
     status_f = request.GET.get('status', '')
     if status_f:
@@ -1074,6 +1089,9 @@ def supplier_candidates_list(request):
 @api_view(['GET'])
 def parsing_runs_list(request):
     """GET /api/parsing-runs/ — история запусков парсинга."""
+    denied = require_admin(request)
+    if denied:
+        return denied
     qs = ParsingRun.objects.order_by('-started_at')[:50]
     return Response(ParsingRunSerializer(qs, many=True).data)
 
@@ -1081,6 +1099,9 @@ def parsing_runs_list(request):
 @api_view(['GET'])
 def monitoring_summary(request):
     """GET /api/monitoring/summary/ — сводка по модулю мониторинга."""
+    denied = require_admin(request)
+    if denied:
+        return denied
     return Response({
         'parsing_sources_total': ParsingSource.objects.count(),
         'parsing_sources_active': ParsingSource.objects.filter(is_active=True).count(),
@@ -1097,6 +1118,9 @@ def monitoring_summary(request):
 @api_view(['POST'])
 def parsing_source_toggle(request, pk):
     """POST /api/parsing-sources/<pk>/toggle/ — включить/выключить источник."""
+    denied = require_admin(request)
+    if denied:
+        return denied
     try:
         source = ParsingSource.objects.get(pk=pk)
     except ParsingSource.DoesNotExist:
@@ -1109,6 +1133,9 @@ def parsing_source_toggle(request, pk):
 @api_view(['POST'])
 def supplier_candidate_approve(request, pk):
     """POST /api/supplier-candidates/<pk>/approve/ — одобрить кандидата."""
+    denied = require_admin(request)
+    if denied:
+        return denied
     try:
         candidate = SupplierCandidate.objects.get(pk=pk, status='new')
     except SupplierCandidate.DoesNotExist:
@@ -1141,6 +1168,9 @@ def supplier_candidate_approve(request, pk):
 @api_view(['POST'])
 def supplier_candidate_reject(request, pk):
     """POST /api/supplier-candidates/<pk>/reject/ — отклонить кандидата."""
+    denied = require_admin(request)
+    if denied:
+        return denied
     updated = SupplierCandidate.objects.filter(pk=pk, status='new').update(
         status='rejected',
         reviewed_at=timezone.now(),
@@ -1153,6 +1183,9 @@ def supplier_candidate_reject(request, pk):
 @api_view(['POST'])
 def run_parsing(request):
     """POST /api/monitoring/run-parsing/ — запустить парсинг из UI."""
+    denied = require_admin(request)
+    if denied:
+        return denied
     limit = int(request.data.get('limit', 8))
 
     def _run():
