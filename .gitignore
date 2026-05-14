@@ -1,0 +1,16 @@
+.env
+*.sqlite3
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+node_modules/
+dist/
+/package-lock.json
+!frontend/package-lock.json
+
+.claude/worktrees/
+npm-debug.log*

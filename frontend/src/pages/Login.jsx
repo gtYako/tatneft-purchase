@@ -28,8 +28,8 @@ export default function Login() {
       <div className="card shadow-lg" style={{ width: 400, border: 'none' }}>
         <div className="card-body p-4">
           <div className="text-center mb-4">
-            <div style={{ fontSize: '2.5rem', color: '#374151' }}>
-              <i className="bi bi-droplet-fill" style={{ color: '#6b7280' }}></i>
+            <div style={{ fontSize: '2.5rem' }}>
+              <i className="bi bi-droplet-fill text-warning"></i>
             </div>
             <h4 className="fw-bold mt-2 mb-0" style={{ color: '#111827' }}>Система закупок МТО</h4>
             <div className="text-muted small">Нефтедобывающее предприятие</div>
