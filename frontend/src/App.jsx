@@ -71,14 +71,9 @@ function AccessDenied({ roles = [] }) {
                 Доступ разрешен для ролей: {allowed}.
               </p>
             )}
-            <div className="d-flex gap-2">
-              <Link to="/" className="btn btn-primary">
-                <i className="bi bi-house-door me-1"></i>На главную
-              </Link>
-              <button type="button" className="btn btn-outline-secondary" onClick={() => window.history.back()}>
-                Назад
-              </button>
-            </div>
+            <Link to="/" className="btn btn-primary">
+              <i className="bi bi-house-door me-1"></i>На главную
+            </Link>
           </div>
         </div>
       </div>
