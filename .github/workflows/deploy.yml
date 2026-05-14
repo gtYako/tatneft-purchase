@@ -3,7 +3,7 @@ name: Deploy to Production
 on:
   push:
     branches:
-      - main  # только push в main запускает деплой
+      - main  # Деплой запускается только после push в основную ветку.
 
 jobs:
   deploy:
@@ -14,7 +14,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2  # нужно для сравнения с предыдущим коммитом
+          fetch-depth: 2  # Нужен для сравнения текущего и предыдущего коммита.
 
       - name: Deploy to server via SSH
         uses: appleboy/ssh-action@v1.0.3
