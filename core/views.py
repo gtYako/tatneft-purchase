@@ -27,7 +27,7 @@ from .forms import (
 )
 
 
-# ─────────────────── helpers ───────────────────
+# ─────────────────── Вспомогательные функции ───────────────────
 
 def log_action(request, action, obj=None, details=''):
     AuditLog.objects.create(
@@ -62,7 +62,7 @@ def role_required(*roles):
     return decorator
 
 
-# ─────────────────── dashboard ───────────────────
+# ─────────────────── Главная панель ───────────────────
 
 @login_required
 def dashboard(request):
@@ -127,7 +127,7 @@ def dashboard(request):
     return render(request, 'dashboard.html', ctx)
 
 
-# ─────────────────── catalog: categories ───────────────────
+# ─────────────────── Категории каталога ───────────────────
 
 @login_required
 def category_list(request):
@@ -192,7 +192,7 @@ def category_delete(request, pk):
     return redirect('category_list')
 
 
-# ─────────────────── catalog: materials ───────────────────
+# ─────────────────── Материалы и оборудование ───────────────────
 
 @login_required
 def material_list(request):
@@ -282,7 +282,7 @@ def material_delete(request, pk):
     return redirect('material_list')
 
 
-# ─────────────────── warehouse ───────────────────
+# ─────────────────── Складские остатки ───────────────────
 
 @login_required
 def warehouse_list(request):
@@ -349,7 +349,7 @@ def warehouse_delete(request, pk):
     return redirect('warehouse_list')
 
 
-# ─────────────────── purchase requests ───────────────────
+# ─────────────────── Заявки на закупку ───────────────────
 
 @login_required
 def request_list(request):
@@ -431,7 +431,7 @@ def request_detail(request, pk):
     req = get_object_or_404(PurchaseRequest, pk=pk)
     user = request.user
 
-    # Access control
+    # Проверка доступа к заявке
     if user.role == 'initiator' and req.requester != user:
         return HttpResponseForbidden()
 
@@ -460,11 +460,11 @@ def request_add_item(request, pk):
     if form.is_valid():
         item = form.save(commit=False)
         item.request = req
-        # Check warehouse stock
+        # Учитываем доступный складской остаток
         available = item.material.get_available_stock()
         item.qty_available_at_warehouse = min(available, item.qty_requested)
         item.qty_to_purchase = max(0, item.qty_requested - item.qty_available_at_warehouse)
-        # Auto-set target price from best quote
+        # Подставляем лучшую цену как целевую
         best = item.material.get_best_price()
         if best and not item.target_price:
             item.target_price = best
@@ -559,7 +559,7 @@ def request_return_to_draft(request, pk):
     return redirect('request_detail', pk=pk)
 
 
-# ─────────────────── market analysis / quote selection ───────────────────
+# ─────────────────── Анализ рынка и выбор предложения ───────────────────
 
 @login_required
 def market_analysis(request, item_pk):
@@ -596,7 +596,7 @@ def market_analysis(request, item_pk):
     })
 
 
-# ─────────────────── suppliers ───────────────────
+# ─────────────────── Поставщики ───────────────────
 
 @login_required
 def supplier_list(request):
@@ -674,7 +674,7 @@ def supplier_delete(request, pk):
     return redirect('supplier_list')
 
 
-# ─────────────────── price quotes ───────────────────
+# ─────────────────── Ценовые предложения ───────────────────
 
 @login_required
 def quote_list(request):
@@ -773,7 +773,7 @@ def quote_delete(request, pk):
     return redirect('quote_list')
 
 
-# ─────────────────── orders ───────────────────
+# ─────────────────── Заказы поставщикам ───────────────────
 
 @login_required
 def order_list(request):
@@ -816,7 +816,7 @@ def order_create(request, request_pk):
         return HttpResponseForbidden()
     req = get_object_or_404(PurchaseRequest, pk=request_pk, status='approved')
 
-    # Determine supplier from selected quotes
+    # Определяем поставщика по выбранным предложениям
     suppliers_used = set()
     for item in req.items.filter(qty_to_purchase__gt=0):
         if item.selected_quote:
@@ -840,7 +840,7 @@ def order_create(request, request_pk):
         }
         if len(suppliers_used) == 1:
             initial['supplier'] = next(iter(suppliers_used))
-            # Calculate total from selected quotes
+            # Рассчитываем сумму заказа по выбранным предложениям
             total = sum(
                 float(item.qty_to_purchase) * float(item.selected_quote.price)
                 for item in req.items.filter(qty_to_purchase__gt=0, selected_quote__isnull=False)
@@ -868,7 +868,7 @@ def order_status_update(request, pk):
         order.status = new_status
         if new_status == 'delivered' and not order.actual_delivery_date:
             order.actual_delivery_date = timezone.now().date()
-            # Mark request as completed if all orders delivered
+            # Закрываем заявку, если все заказы по ней доставлены
             if all(o.status == 'delivered' for o in order.request.orders.all()):
                 order.request.status = 'completed'
                 order.request.save()
@@ -878,7 +878,7 @@ def order_status_update(request, pk):
     return redirect('order_detail', pk=pk)
 
 
-# ─────────────────── analytics ───────────────────
+# ─────────────────── Аналитика закупок ───────────────────
 
 @login_required
 def analytics_dashboard(request):
@@ -890,19 +890,19 @@ def analytics_dashboard(request):
         if stock.is_low:
             materials_with_shortage.append(stock)
 
-    # Requests by status
+    # Считаем количество заявок в каждом статусе для диаграммы.
     status_data = {}
     for s, label in PurchaseRequest.STATUS_CHOICES:
         status_data[label] = PurchaseRequest.objects.filter(status=s).count()
 
-    # Top materials by number of quotes
+    # Материалы с наибольшим числом предложений
     top_materials = (
         Material.objects.filter(is_active=True)
         .annotate(q_count=Count('price_quotes'))
         .order_by('-q_count')[:10]
     )
 
-    # Recent price changes
+    # Последние изменения цен
     recent_quotes = PriceQuote.objects.select_related('material', 'supplier').order_by('-quote_date')[:15]
 
     return render(request, 'analytics/dashboard.html', {
@@ -935,7 +935,7 @@ def price_dynamics(request):
                 .select_related('supplier')
                 .order_by('quote_date')
             )
-            # Group by supplier
+            # Группируем историю цен по поставщикам, чтобы фронтенд построил несколько линий на графике.
             supplier_data = {}
             for q in quotes:
                 sname = q.supplier.name
@@ -960,7 +960,7 @@ def shortage_report(request):
     if request.user.role not in ('analyst', 'manager', 'admin', 'purchaser'):
         return HttpResponseForbidden()
 
-    # Find all request items where qty_to_purchase > 0 (shortage from warehouse)
+    # Отдельно собираем позиции заявок, которые склад не покрывает полностью.
     shortage_items = RequestItem.objects.filter(
         qty_to_purchase__gt=0,
         request__status__in=('submitted', 'approved', 'ordered')
@@ -968,7 +968,7 @@ def shortage_report(request):
         'request__criticality', 'request__need_date'
     )
 
-    # Also find materials below min stock
+    # Материалы ниже минимального запаса
     low_stocks = [s for s in WarehouseStock.objects.select_related('material').all() if s.is_low]
 
     return render(request, 'analytics/shortage_report.html', {
@@ -982,18 +982,18 @@ def reports(request):
     if request.user.role not in ('analyst', 'manager', 'admin'):
         return HttpResponseForbidden()
 
-    # Summary statistics
+    # Сводные показатели используются в верхних карточках аналитической панели.
     total_approved_amount = sum(
         r.get_total_target_amount()
         for r in PurchaseRequest.objects.filter(status__in=('approved', 'ordered', 'completed'))
     )
 
-    # Orders by status
+    # Распределение заказов поставщикам по статусам.
     orders_by_status = {}
     for s, label in PurchaseOrder.STATUS_CHOICES:
         orders_by_status[label] = PurchaseOrder.objects.filter(status=s).count()
 
-    # Top suppliers by order count
+    # Поставщики с наибольшим числом заказов показываются в аналитическом рейтинге.
     top_suppliers = (
         Supplier.objects
         .annotate(order_count=Count('orders'))
@@ -1001,7 +1001,7 @@ def reports(request):
         .order_by('-order_count')[:10]
     )
 
-    # Requests created per month (last 6 months)
+    # Динамика заявок по месяцам нужна для оценки закупочной нагрузки за последние полгода.
     from django.db.models.functions import TruncMonth
     monthly = (
         PurchaseRequest.objects
@@ -1025,7 +1025,7 @@ def reports(request):
     })
 
 
-# ─────────────────── admin panel ───────────────────
+# ─────────────────── Администрирование ───────────────────
 
 @login_required
 def user_list(request):

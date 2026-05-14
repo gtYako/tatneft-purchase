@@ -60,7 +60,7 @@ def require_admin(request):
     return None
 
 
-# ─────────────────── AUTH ───────────────────
+# ─────────────────── Авторизация ───────────────────
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -91,7 +91,7 @@ def me_view(request):
     return Response(UserSerializer(request.user).data)
 
 
-# ─────────────────── CATEGORIES ───────────────────
+# ─────────────────── Категории каталога ───────────────────
 
 class CategoryListCreate(APIView):
     permission_classes = [IsAuthenticated]
@@ -157,7 +157,7 @@ class CategoryDetail(APIView):
         return Response(status=204)
 
 
-# ─────────────────── MATERIALS ───────────────────
+# ─────────────────── Материалы и оборудование ───────────────────
 
 class MaterialListCreate(APIView):
     permission_classes = [IsAuthenticated]
@@ -239,7 +239,7 @@ class MaterialDetail(APIView):
         return Response(status=204)
 
 
-# ─────────────────── WAREHOUSE ───────────────────
+# ─────────────────── Складские остатки ───────────────────
 
 class WarehouseListCreate(APIView):
     permission_classes = [IsAuthenticated]
@@ -312,7 +312,7 @@ class WarehouseDetail(APIView):
         return Response(status=204)
 
 
-# ─────────────────── SUPPLIERS ───────────────────
+# ─────────────────── Поставщики ───────────────────
 
 class SupplierListCreate(APIView):
     permission_classes = [IsAuthenticated]
@@ -385,7 +385,7 @@ class SupplierDetail(APIView):
         return Response(status=204)
 
 
-# ─────────────────── PRICE QUOTES ───────────────────
+# ─────────────────── Ценовые предложения ───────────────────
 
 class QuoteListCreate(APIView):
     permission_classes = [IsAuthenticated]
@@ -466,7 +466,7 @@ class QuoteDetail(APIView):
         return Response(status=204)
 
 
-# ─────────────────── PURCHASE REQUESTS ───────────────────
+# ─────────────────── Заявки на закупку ───────────────────
 
 class RequestListCreate(APIView):
     permission_classes = [IsAuthenticated]
@@ -707,7 +707,7 @@ def item_select_quote(request, item_pk):
     return Response(RequestItemSerializer(item).data)
 
 
-# ─────────────────── ORDERS ───────────────────
+# ─────────────────── Заказы поставщикам ───────────────────
 
 class OrderListCreate(APIView):
     permission_classes = [IsAuthenticated]
@@ -793,7 +793,7 @@ def order_status_update(request, pk):
     return Response(PurchaseOrderSerializer(order).data)
 
 
-# ─────────────────── ANALYTICS ───────────────────
+# ─────────────────── Аналитика закупок ───────────────────
 
 @api_view(['GET'])
 def analytics_dashboard(request):
@@ -912,7 +912,7 @@ def analytics_reports(request):
     })
 
 
-# ─────────────────── ADMIN PANEL ───────────────────
+# ─────────────────── Администрирование ───────────────────
 
 @api_view(['GET', 'POST'])
 def user_list_create(request):
@@ -981,7 +981,7 @@ def audit_log_list(request):
     return resp
 
 
-# ─────────────────── HELPERS ───────────────────
+# ─────────────────── Вспомогательные справочники для форм ───────────────────
 
 @api_view(['GET'])
 def materials_all(request):
@@ -1262,7 +1262,7 @@ def ai_explain_prices(request):
 
     try:
         import uuid
-        # Получаем access token
+        # Получаем временный токен доступа к GigaChat.
         token_resp = requests.post(
             'https://ngw.devices.sberbank.ru:9443/api/v2/oauth',
             headers={
@@ -1277,7 +1277,7 @@ def ai_explain_prices(request):
         token_resp.raise_for_status()
         access_token = token_resp.json()['access_token']
 
-        # Вызываем GigaChat
+        # Отправляем подготовленные ценовые данные в GigaChat.
         chat_resp = requests.post(
             'https://gigachat.devices.sberbank.ru/api/v1/chat/completions',
             headers={
@@ -1295,7 +1295,7 @@ def ai_explain_prices(request):
         )
         chat_resp.raise_for_status()
         raw = chat_resp.json()['choices'][0]['message']['content'].strip()
-        # убрать markdown-блоки если модель их добавила
+        # Убираем markdown-блоки, если модель добавила их вокруг JSON.
         if raw.startswith('```'):
             raw = raw.split('```')[1]
             if raw.startswith('json'):
@@ -1305,7 +1305,7 @@ def ai_explain_prices(request):
         result['data_points'] = len(quotes)
         return Response(result)
     except json.JSONDecodeError:
-        # GPT вернул не JSON — отдаём как plain text
+        # Если модель вернула не JSON, показываем текст как обычный анализ.
         return Response({
             'analysis': raw,
             'forecast': '',

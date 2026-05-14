@@ -92,7 +92,7 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
 
-# ─── DRF ───
+# Настройки API: по умолчанию все эндпоинты доступны только авторизованным пользователям.
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
@@ -105,8 +105,8 @@ REST_FRAMEWORK = {
     ],
 }
 
-# ─── CSRF / Session for React SPA ───
-CSRF_COOKIE_HTTPONLY = False          # React must read it
+# Сессии и CSRF для React SPA: фронтенд читает cookie и передает токен в запросах.
+CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_TRUSTED_ORIGINS = [
@@ -115,7 +115,7 @@ CSRF_TRUSTED_ORIGINS = [
     if origin.strip()
 ]
 
-# CORS — same origin through nginx, not needed in prod, useful in dev
+# CORS используется при локальном запуске фронтенда отдельно от Django.
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     origin.strip()

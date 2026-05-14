@@ -28,7 +28,6 @@ export default function AnalyticsDashboard() {
     <div>
       <h1 className="page-title mb-4"><i className="bi bi-bar-chart me-2"></i>Аналитика закупок</h1>
 
-      {/* KPI */}
       <div className="row g-3 mb-4">
         {[
           { label: 'Всего заявок', val: data.total_requests, icon: 'file-earmark-text', color: '#1a237e' },
@@ -51,7 +50,6 @@ export default function AnalyticsDashboard() {
       </div>
 
       <div className="row g-3 mb-4">
-        {/* Status pie */}
         <div className="col-lg-5">
           <div className="card h-100">
             <div className="card-header bg-white fw-semibold">
@@ -74,7 +72,6 @@ export default function AnalyticsDashboard() {
           </div>
         </div>
 
-        {/* Top materials by quotes */}
         <div className="col-lg-7">
           <div className="card h-100">
             <div className="card-header bg-white fw-semibold">
@@ -95,7 +92,6 @@ export default function AnalyticsDashboard() {
         </div>
       </div>
 
-      {/* Low stock */}
       {data.shortage_stocks?.length > 0 && (
         <div className="card mb-4">
           <div className="card-header bg-white fw-semibold text-danger">
@@ -122,7 +118,6 @@ export default function AnalyticsDashboard() {
         </div>
       )}
 
-      {/* Recent quotes */}
       <div className="card">
         <div className="card-header bg-white fw-semibold">
           <i className="bi bi-clock-history me-1 text-primary"></i> Последние ценовые предложения

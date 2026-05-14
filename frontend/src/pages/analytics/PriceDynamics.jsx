@@ -131,7 +131,7 @@ export default function PriceDynamics() {
   const { price_data = {}, materials = [] } = apiData || {}
   const suppliers = Object.keys(price_data)
 
-  // Build chart data
+  // Recharts ожидает массив строк по датам, поэтому разворачиваем данные поставщиков в единую таблицу.
   const allDates = new Set()
   suppliers.forEach(s => price_data[s].forEach(p => allDates.add(p.date)))
   const chartData = [...allDates].sort().map(date => {

@@ -30,10 +30,8 @@ export default function Layout({ children }) {
 
   return (
     <div className="d-flex" style={{ minHeight: '100vh' }}>
-      {/* Overlay */}
       <div className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`} onClick={closeSidebar} />
 
-      {/* Sidebar */}
       <nav className={`sidebar d-flex flex-column py-3 ${sidebarOpen ? 'sidebar-open' : ''}`}>
         <div className="px-3 mb-3">
           <div className="text-white fw-bold" style={{ fontSize: '0.95rem', lineHeight: 1.3 }}>
@@ -126,7 +124,6 @@ export default function Layout({ children }) {
         </div>
       </nav>
 
-      {/* Main */}
       <div className="main-content d-flex flex-column">
         <div className="topbar d-flex align-items-center px-4 gap-3">
           <button

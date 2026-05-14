@@ -13,8 +13,7 @@ from django.core.management.base import BaseCommand
 from core.models import Supplier, ParsingSource, SupplierCandidate
 
 SUPPLIERS_DATA = [
-    # (name, inn_fake, active_sources, inactive_sources)
-    # inn_fake — временный уникальный ИНН для демо-данных
+    # ИНН в демо-данных искусственный: он нужен только для уникальности поставщиков.
     {
         'name': 'ТД Автоматика',
         'inn': '7710001001',
@@ -151,7 +150,7 @@ SUPPLIERS_DATA = [
             },
         ],
     },
-    # ── Неактивные (требуют ручной проверки) ──
+    # Неактивные источники сохраняются для ручной проверки перед включением парсинга.
     {
         'name': 'ЭТМ',
         'inn': '7810001001',

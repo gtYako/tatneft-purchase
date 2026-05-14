@@ -212,7 +212,7 @@ class Supplier(models.Model):
 
     def get_avg_price_change(self):
         """Returns average price change trend as percentage (positive = growth)."""
-        return None  # Placeholder for analytics
+        return None  # Расчет тренда поставщика можно расширить в аналитическом модуле.
 
     RATING_COLORS = {
         range(1, 4): 'danger',
@@ -678,7 +678,7 @@ class SupplierCandidate(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создан')
     reviewed_at = models.DateTimeField(null=True, blank=True, verbose_name='Проверен')
 
-    # Discovery analysis fields
+    # Результаты автоматической проверки сайта кандидата.
     detected_contacts = models.JSONField(default=dict, blank=True, verbose_name='Контакты')
     detected_categories = models.JSONField(default=list, blank=True, verbose_name='Категории')
     detected_catalog_urls = models.JSONField(default=list, blank=True, verbose_name='URL каталогов')

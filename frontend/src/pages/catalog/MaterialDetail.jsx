@@ -24,7 +24,7 @@ export default function MaterialDetail() {
   if (loading) return <div className="spinner-center"><div className="spinner-border text-primary" /></div>
   if (!mat) return <div className="alert alert-danger">Материал не найден</div>
 
-  // Build chart data from price_history grouped by supplier
+  // График строится как таблица: строка — дата, столбцы — поставщики.
   const supplierMap = {}
   const allDates = new Set()
   ;(mat.price_history || []).forEach(p => {
@@ -60,7 +60,6 @@ export default function MaterialDetail() {
       </div>
 
       <div className="row g-3 mb-3">
-        {/* Info card */}
         <div className="col-lg-4">
           <div className="card h-100">
             <div className="card-header bg-white fw-semibold">Характеристики</div>
@@ -97,7 +96,6 @@ export default function MaterialDetail() {
           </div>
         </div>
 
-        {/* Stocks */}
         <div className="col-lg-8">
           <div className="card h-100">
             <div className="card-header bg-white fw-semibold">Складские остатки</div>
@@ -126,7 +124,6 @@ export default function MaterialDetail() {
         </div>
       </div>
 
-      {/* Price history chart */}
       {chartData.length > 1 && (
         <div className="card mb-3">
           <div className="card-header bg-white fw-semibold">
@@ -150,7 +147,6 @@ export default function MaterialDetail() {
         </div>
       )}
 
-      {/* Quotes table */}
       <div className="card">
         <div className="card-header bg-white d-flex justify-content-between align-items-center">
           <span className="fw-semibold"><i className="bi bi-currency-dollar me-1 text-success"></i> Ценовые предложения</span>

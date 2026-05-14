@@ -157,7 +157,6 @@ export default function RequestDetail() {
         </div>
       )}
 
-      {/* Header info */}
       <div className="row g-3 mb-3">
         <div className="col-md-8">
           <div className="card h-100">
@@ -203,7 +202,6 @@ export default function RequestDetail() {
         </div>
       </div>
 
-      {/* Items */}
       <div className="card mb-3">
         <div className="card-header bg-white fw-semibold">
           <i className="bi bi-list-ul me-1 text-primary"></i> Позиции заявки
@@ -271,7 +269,6 @@ export default function RequestDetail() {
         </div>
       </div>
 
-      {/* Add item form */}
       {isDraft && (
         <div className="card mb-3">
           <div className="card-header bg-white fw-semibold">
@@ -306,7 +303,6 @@ export default function RequestDetail() {
         </div>
       )}
 
-      {/* Orders */}
       {req.orders?.length > 0 && (
         <div className="card">
           <div className="card-header bg-white fw-semibold">

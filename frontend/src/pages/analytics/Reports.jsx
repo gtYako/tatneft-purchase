@@ -36,7 +36,6 @@ export default function Reports() {
     <div>
       <h1 className="page-title mb-4"><i className="bi bi-file-earmark-bar-graph me-2"></i>Сводные отчёты</h1>
 
-      {/* Summary KPIs */}
       <div className="row g-3 mb-4">
         {[
           { label: 'Всего заявок', val: data.total_requests, color: '#1a237e', icon: 'file-earmark-text' },
@@ -58,7 +57,6 @@ export default function Reports() {
         ))}
       </div>
 
-      {/* Monthly requests bar chart */}
       <div className="card mb-4">
         <div className="card-header bg-white fw-semibold">
           <i className="bi bi-bar-chart-line me-1 text-primary"></i> Заявки по месяцам
@@ -87,7 +85,6 @@ export default function Reports() {
       </div>
 
       <div className="row g-3 mb-4">
-        {/* Orders by status pie */}
         <div className="col-lg-5">
           <div className="card h-100">
             <div className="card-header bg-white fw-semibold">
@@ -115,7 +112,6 @@ export default function Reports() {
           </div>
         </div>
 
-        {/* Top suppliers */}
         <div className="col-lg-7">
           <div className="card h-100">
             <div className="card-header bg-white fw-semibold">
@@ -140,7 +136,6 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* Supplier table */}
       {data.top_suppliers?.length > 0 && (
         <div className="card">
           <div className="card-header bg-white fw-semibold">Детализация по поставщикам</div>

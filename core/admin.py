@@ -123,17 +123,17 @@ class ParsingRunAdmin(admin.ModelAdmin):
 def _approve_candidates(modeladmin, request, queryset):
     """Одобрить кандидатов и создать Supplier + неактивный ParsingSource."""
     for candidate in queryset.filter(status='new'):
-        # Создать Supplier если не существует
+        # Создаем поставщика, если кандидат еще не был перенесен в основной справочник.
         supplier, _ = Supplier.objects.get_or_create(
             name=candidate.name,
             defaults={
-                'inn': f"99{candidate.id:08d}",  # временный ИНН для модерации
+                'inn': f"99{candidate.id:08d}",  # Временный ИНН для модерации.
                 'notes': f"Создан из SupplierCandidate #{candidate.id}. Сайт: {candidate.website}",
                 'is_active': True,
                 'rating': 5.0,
             },
         )
-        # Создать неактивные ParsingSource для найденных каталогов
+        # Источники парсинга создаются неактивными, чтобы администратор проверил их вручную.
         for catalog_url in (candidate.detected_catalog_urls or [candidate.website])[:3]:
             if not ParsingSource.objects.filter(supplier=supplier, url=catalog_url).exists():
                 ParsingSource.objects.create(
@@ -142,7 +142,7 @@ def _approve_candidates(modeladmin, request, queryset):
                     url=catalog_url,
                     source_type='listing',
                     category_hint=candidate.category_hint,
-                    is_active=False,  # администратор включает вручную
+                    is_active=False,
                 )
         candidate.status = 'approved'
         candidate.reviewed_at = timezone.now()

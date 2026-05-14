@@ -39,7 +39,6 @@ export default function ShortageReport() {
         </div>
       </div>
 
-      {/* Shortage from requests */}
       <div className="card mb-4">
         <div className="card-header bg-white fw-semibold text-warning">
           <i className="bi bi-cart-x me-1"></i> Позиции к закупке (по активным заявкам)
@@ -92,7 +91,6 @@ export default function ShortageReport() {
         </div>
       </div>
 
-      {/* Low stock */}
       <div className="card">
         <div className="card-header bg-white fw-semibold text-danger">
           <i className="bi bi-exclamation-triangle-fill me-1"></i> Позиции ниже минимального запаса

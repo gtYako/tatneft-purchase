@@ -1,9 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import axios from 'axios'
 
-// ──────────────────────────────────────────────────────────────
-// Сводка
-// ──────────────────────────────────────────────────────────────
+// Вкладка сводки показывает состояние мониторинга и запускает быстрый парсинг.
 function TabSummary({ summary, onRefresh }) {
   const [running, setRunning] = useState(false)
   const [msg, setMsg] = useState('')
@@ -107,9 +105,7 @@ function TabSummary({ summary, onRefresh }) {
   )
 }
 
-// ──────────────────────────────────────────────────────────────
-// Источники парсинга
-// ──────────────────────────────────────────────────────────────
+// Вкладка источников управляет сайтами поставщиков, которые участвуют в парсинге.
 function TabSources() {
   const [data, setData] = useState({ results: [], count: 0 })
   const [loading, setLoading] = useState(true)
@@ -184,9 +180,7 @@ function TabSources() {
   )
 }
 
-// ──────────────────────────────────────────────────────────────
-// Найденные товары
-// ──────────────────────────────────────────────────────────────
+// Вкладка найденных товаров показывает результаты парсинга и сопоставление с каталогом.
 function TabProducts() {
   const [data, setData] = useState({ results: [], count: 0 })
   const [loading, setLoading] = useState(true)
@@ -263,9 +257,7 @@ function TabProducts() {
   )
 }
 
-// ──────────────────────────────────────────────────────────────
-// История запусков
-// ──────────────────────────────────────────────────────────────
+// Вкладка истории фиксирует последние запуски автоматического мониторинга.
 function TabRuns() {
   const [runs, setRuns] = useState([])
   const [loading, setLoading] = useState(true)
@@ -322,9 +314,7 @@ function TabRuns() {
   )
 }
 
-// ──────────────────────────────────────────────────────────────
-// Кандидаты поставщиков
-// ──────────────────────────────────────────────────────────────
+// Вкладка кандидатов нужна для ручной модерации новых поставщиков.
 function TabCandidates() {
   const [data, setData] = useState({ results: [], count: 0 })
   const [loading, setLoading] = useState(true)
@@ -433,9 +423,7 @@ function TabCandidates() {
   )
 }
 
-// ──────────────────────────────────────────────────────────────
-// Главная страница мониторинга
-// ──────────────────────────────────────────────────────────────
+// Основной экран объединяет вкладки мониторинга поставщиков.
 export default function MonitoringPage() {
   const [tab, setTab] = useState('summary')
   const [summary, setSummary] = useState(null)

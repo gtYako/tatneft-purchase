@@ -55,7 +55,7 @@ class Command(BaseCommand):
         candidates_updated = 0
         error_lines = []
 
-        # ── Режим CSV ──
+        # Режим CSV нужен для ручной загрузки заранее найденных сайтов поставщиков.
         if csv_path:
             if not os.path.exists(csv_path):
                 self.stdout.write(self.style.ERROR(f"CSV-файл не найден: {csv_path}"))
@@ -90,7 +90,7 @@ class Command(BaseCommand):
             )
             return
 
-        # ── Режим поиска через API ──
+        # Режим API запускает автоматический поиск кандидатов через поисковый сервис.
         has_api_key = bool(os.environ.get('SERPAPI_API_KEY') or os.environ.get('SEARCH_API_KEY'))
         if not has_api_key:
             self.stdout.write(self.style.WARNING(
@@ -107,7 +107,7 @@ class Command(BaseCommand):
                 run.save()
             return
 
-        # Получить запросы
+        # Берём только активные поисковые запросы, чтобы запуск не создавал лишние кандидаты.
         qs = SupplierDiscoveryQuery.objects.filter(is_active=True)
         if query_id:
             qs = qs.filter(id=query_id)
@@ -141,7 +141,7 @@ class Command(BaseCommand):
                         candidates_created_ref=[candidates_created],
                         candidates_updated_ref=[candidates_updated],
                     )
-                    candidates_created = candidates_created  # обновляется внутри _process_one через list
+                    candidates_created = candidates_created  # Значение обновляется внутри _process_one через изменяемую ссылку.
             except Exception as exc:
                 msg = f"Ошибка при запросе '{query.query}': {exc}"
                 self.stdout.write(self.style.ERROR(f"  {msg}"))

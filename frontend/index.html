@@ -15,7 +15,7 @@
     <style>
       body { background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
 
-      /* Sidebar */
+      /* Боковая навигация */
       .sidebar {
         min-height: 100vh;
         height: 100vh;
@@ -60,7 +60,7 @@
         margin-top: 0.25rem;
       }
 
-      /* Layout */
+      /* Общая компоновка */
       .main-content { flex: 1; overflow-x: hidden; }
       .topbar {
         background: #fff;
@@ -71,28 +71,28 @@
         z-index: 100;
       }
 
-      /* Cards */
+      /* Карточки */
       .card { border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,.05); border-radius: 8px; }
       .card-header { background-color: #fff !important; border-bottom: 1px solid #f3f4f6; }
       .stat-card { border-left: 3px solid; border-top: none; border-right: none; border-bottom: none; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
 
-      /* Tables */
+      /* Таблицы */
       .table th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: #9ca3af; font-weight: 600; }
       .table-hover tbody tr:hover { background-color: #f9fafb; }
 
-      /* Criticality badges */
+      /* Индикаторы критичности материалов */
       .badge-criticality-critical { background-color: #ef4444; }
       .badge-criticality-high    { background-color: #f97316; }
       .badge-criticality-medium  { background-color: #6b7280; }
       .badge-criticality-low     { background-color: #d1d5db; color: #374151 !important; }
 
-      /* Page title */
+      /* Заголовки страниц */
       .page-title { font-size: 1.3rem; font-weight: 600; color: #111827; }
 
-      /* Spinner */
+      /* Индикатор загрузки */
       .spinner-center { display: flex; align-items: center; justify-content: center; min-height: 300px; }
 
-      /* ── Bootstrap overrides: нейтрализуем кислотный синий ── */
+      /* Переопределение Bootstrap под спокойную рабочую палитру интерфейса. */
       :root {
         --bs-primary: #374151;
         --bs-primary-rgb: 55, 65, 81;
@@ -130,7 +130,7 @@
       .table-light { background-color: #f9fafb !important; }
       .table-light th { background-color: #f9fafb !important; }
 
-      /* ── Адаптив: планшеты и мобильные (≤1024px) ── */
+      /* Адаптивная боковая навигация для планшетов и мобильных экранов. */
       .btn-sidebar-toggle { display: none; }
 
       @media (max-width: 1024px) {

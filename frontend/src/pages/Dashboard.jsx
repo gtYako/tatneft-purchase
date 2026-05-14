@@ -32,7 +32,6 @@ export default function Dashboard() {
         Добро пожаловать, {user?.full_name || user?.username}!
       </h1>
 
-      {/* Stats for analyst/manager/admin */}
       {data && (
         <div className="row g-3 mb-4">
           {[
@@ -56,7 +55,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Status pie data */}
       {data?.status_data && (
         <div className="row g-3 mb-4">
           <div className="col-lg-6">
@@ -108,7 +106,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Recent requests */}
       <div className="card">
         <div className="card-header bg-white d-flex justify-content-between align-items-center">
           <span className="fw-semibold"><i className="bi bi-clock-history me-1 text-primary"></i> Последние заявки</span>

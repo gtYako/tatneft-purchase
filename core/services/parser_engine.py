@@ -128,7 +128,7 @@ def extract_characteristics(soup: BeautifulSoup) -> dict:
                 if key and val and len(key) < 100:
                     chars[key] = val
 
-    # dl/dt/dd списки
+    # Характеристики могут быть оформлены списками dl/dt/dd вместо таблицы.
     for dl in soup.find_all('dl')[:3]:
         dts = dl.find_all('dt')
         dds = dl.find_all('dd')
@@ -143,7 +143,7 @@ def extract_characteristics(soup: BeautifulSoup) -> dict:
 
 def _find_price(soup: BeautifulSoup, page_text: str) -> Decimal | None:
     """Найти цену на странице через несколько стратегий."""
-    # itemprop="price"
+    # Сначала проверяем микроразметку товара.
     el = soup.find(attrs={'itemprop': 'price'})
     if el:
         val = el.get('content') or el.get_text(strip=True)
@@ -151,7 +151,7 @@ def _find_price(soup: BeautifulSoup, page_text: str) -> Decimal | None:
         if price:
             return price
 
-    # CSS-классы цены
+    # Затем ищем цену по распространённым CSS-классам интернет-магазинов.
     for selector in ('.price', '.product-price', '.product__price',
                      '.price__value', '.cost', '[class*="price"]'):
         for el in soup.select(selector)[:5]:
@@ -159,30 +159,30 @@ def _find_price(soup: BeautifulSoup, page_text: str) -> Decimal | None:
             if price:
                 return price
 
-    # Regex по тексту страницы
+    # Последний вариант — поиск цены регулярным выражением по началу текста страницы.
     return normalize_price(page_text[:5000])
 
 
 def _find_name(soup: BeautifulSoup) -> str:
     """Найти название товара на странице."""
-    # itemprop="name"
+    # Приоритет отдаём микроразметке товара.
     el = soup.find(attrs={'itemprop': 'name'})
     if el:
         return el.get_text(strip=True)[:400]
 
-    # h1
+    # Затем используем основной заголовок страницы.
     h1 = soup.find('h1')
     if h1:
         return h1.get_text(strip=True)[:400]
 
-    # CSS-классы названия
+    # Если заголовка нет, проверяем типовые CSS-классы карточки товара.
     for selector in ('.product-title', '.product__title', '.product-name',
                      '[class*="product-title"]', '[class*="product_title"]'):
         el = soup.select_one(selector)
         if el:
             return el.get_text(strip=True)[:400]
 
-    # title тега
+    # В крайнем случае берём содержимое тега title.
     title = soup.find('title')
     if title:
         return title.get_text(strip=True)[:200]
@@ -209,7 +209,7 @@ def parse_product_page(url: str, category_hint: str = None, delay_seconds: int =
         article = extract_article(page_text[:2000])
         characteristics = extract_characteristics(soup)
 
-        # Наличие
+        # Наличие товара часто хранится в отдельных блоках склада или доставки.
         avail_raw = ''
         for selector in ('.availability', '.stock', '[class*="avail"]', '[class*="stock"]'):
             el = soup.select_one(selector)
@@ -218,7 +218,7 @@ def parse_product_page(url: str, category_hint: str = None, delay_seconds: int =
                 break
         availability = normalize_availability(avail_raw or page_text[:1000])
 
-        # Срок поставки
+        # Срок поставки извлекается отдельно, а при отсутствии блока оценивается по статусу наличия.
         delivery_days = None
         for selector in ('.delivery', '.delivery-time', '[class*="delivery"]'):
             el = soup.select_one(selector)
@@ -257,7 +257,7 @@ def parse_listing_page(url: str, category_hint: str = None, max_items: int = 10,
         base_url = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
         results = []
 
-        # Ищем карточки товаров по распространённым паттернам
+        # Ищем карточки товаров по распространённым CSS-паттернам каталогов.
         product_selectors = [
             '.product-card', '.product-item', '.product',
             '[class*="product-card"]', '[class*="product_card"]',
@@ -273,7 +273,7 @@ def parse_listing_page(url: str, category_hint: str = None, max_items: int = 10,
                 break
 
         for card in cards:
-            # Название
+            # Название товара берём из микроразметки, заголовка или типовых классов.
             name_el = (
                 card.find(attrs={'itemprop': 'name'}) or
                 card.find('h2') or card.find('h3') or card.find('h4') or
@@ -281,10 +281,10 @@ def parse_listing_page(url: str, category_hint: str = None, max_items: int = 10,
             )
             name = name_el.get_text(strip=True)[:400] if name_el else ''
 
-            # Цена
+            # Цену извлекаем той же логикой, что и на отдельной карточке товара.
             price = _find_price(card, card.get_text(' ', strip=True))
 
-            # Ссылка
+            # Относительные ссылки приводим к полному URL текущего сайта.
             link_el = card.find('a', href=True)
             product_url = ''
             if link_el:
@@ -306,7 +306,7 @@ def parse_listing_page(url: str, category_hint: str = None, max_items: int = 10,
                     'status_code': status_code,
                 })
 
-        # Если карточки не нашли — пробуем найти любые ссылки с ценами
+        # Если карточки не найдены, сохраняем хотя бы данные самой страницы.
         if not results:
             page_text = soup.get_text(' ', strip=True)
             price = _find_price(soup, page_text)

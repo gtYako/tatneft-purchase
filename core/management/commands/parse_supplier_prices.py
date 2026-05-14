@@ -67,7 +67,7 @@ class Command(BaseCommand):
                 run.save()
             return
 
-        # Загрузить все активные материалы каталога
+        # Загружаем активные материалы каталога один раз, чтобы сопоставлять найденные товары без лишних запросов.
         materials = list(Material.objects.filter(is_active=True).select_related('category'))
         self.stdout.write(f"Материалов в каталоге: {len(materials)}")
 
@@ -124,7 +124,7 @@ class Command(BaseCommand):
                 if dry_run:
                     continue
 
-                # Сохранить ParsedProduct
+                # Сохраняем сырой результат парсинга для последующей проверки и сопоставления.
                 parsed = ParsedProduct.objects.create(
                     source=source,
                     supplier=source.supplier,
@@ -148,7 +148,7 @@ class Command(BaseCommand):
                 )
                 source_products_count += 1
 
-                # Создать/обновить PriceQuote
+                # Для уверенно сопоставленных товаров сразу создаём или обновляем ценовое предложение.
                 if (
                     matched_material
                     and score >= AUTO_QUOTE_MIN_SCORE

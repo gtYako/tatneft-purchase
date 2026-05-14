@@ -32,7 +32,7 @@ class Command(BaseCommand):
         Supplier.objects.all().delete()
         CustomUser.objects.all().delete()
 
-        # ─── Users ───
+        # ─── Пользователи ───
         pwd = make_password('demo1234')
         users = {
             'admin': CustomUser.objects.create(
@@ -68,7 +68,7 @@ class Command(BaseCommand):
         }
         self.stdout.write(self.style.SUCCESS(f'  Пользователей: {len(users)}'))
 
-        # ─── Categories ───
+        # ─── Категории ───
         cats_data = [
             ('Трубы и арматура', 'Трубная продукция, запорная арматура, фитинги'),
             ('Насосное оборудование', 'Центробежные, погружные, плунжерные насосы и насосные агрегаты'),
@@ -85,7 +85,7 @@ class Command(BaseCommand):
             categories[name] = Category.objects.create(name=name, description=desc)
         self.stdout.write(self.style.SUCCESS(f'  Категорий: {len(categories)}'))
 
-        # ─── Materials ───
+        # ─── Материалы ───
         materials_data = [
             ('МТР-001', 'Труба НКТ 73×5,5 мм, сталь 45, ГОСТ 633-80', 'Трубы и арматура', 'шт', 'ГОСТ 633-80', 'Ø73мм, толщ. стенки 5,5мм, длина 10м', 'critical', Decimal('50')),
             ('МТР-002', 'Труба НКТ 89×6,5 мм, сталь 45, ГОСТ 633-80', 'Трубы и арматура', 'шт', 'ГОСТ 633-80', 'Ø89мм, толщ. стенки 6,5мм, длина 10м', 'critical', Decimal('30')),
@@ -128,7 +128,7 @@ class Command(BaseCommand):
             mat_objects[code] = m
         self.stdout.write(self.style.SUCCESS(f'  Материалов МТР: {len(mat_objects)}'))
 
-        # ─── Warehouse ───
+        # ─── Складские остатки ───
         stock_data = [
             ('МТР-001', 'Склад ГСМ-1 (площадка А)', Decimal('80'), Decimal('20')),
             ('МТР-002', 'Склад ГСМ-1 (площадка А)', Decimal('25'), Decimal('5')),
@@ -163,7 +163,7 @@ class Command(BaseCommand):
                 )
         self.stdout.write(self.style.SUCCESS(f'  Складских записей: {len(stock_data)}'))
 
-        # ─── Suppliers ───
+        # ─── Поставщики ───
         suppliers_data = [
             ('НефтеКомплект', '7720123456', 'Петров А.В.', '+7-495-123-45-67', 'sales@nk.ru',
              'г. Москва, ул. Нефтяников, 15', Decimal('8.5'), Decimal('96.0'), 'Крупный поставщик МТР для нефтянки'),
@@ -188,7 +188,7 @@ class Command(BaseCommand):
             supplier_objects.append(s)
         self.stdout.write(self.style.SUCCESS(f'  Поставщиков: {len(supplier_objects)}'))
 
-        # ─── Price Quotes (rich historical data for charts) ───
+        # ─── Ценовые предложения с историей для графиков ───
         today = date.today()
 
         def make_price_series(code, sup_idx, base_price, trend=1.0, months=12, delivery=14, payment='По счёту'):
@@ -199,7 +199,7 @@ class Command(BaseCommand):
                 return
             for i in range(months, 0, -1):
                 dt = today - timedelta(days=30 * i)
-                # Price grows with trend + random ±5%
+                # Цена меняется по тренду с небольшим случайным отклонением.
                 noise = random.uniform(0.95, 1.05)
                 growth = trend ** (months - i)
                 price = round(Decimal(str(float(base_price) * growth * noise)), 2)
@@ -300,7 +300,7 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f'  Ценовых предложений: {PriceQuote.objects.count()}'))
 
-        # ─── Purchase Requests (12 штук, разные статусы и месяцы) ───
+        # ─── Заявки на закупку с разными статусами и месяцами ───
         initiator = users['initiator']
         purchaser = users['purchaser']
         manager   = users['manager']
@@ -325,7 +325,7 @@ class Command(BaseCommand):
                 approved_at=approved_at,
             )
             r.save()
-            # backdate created_at
+            # Сдвигаем дату создания для демонстрации аналитики по месяцам.
             PurchaseRequest.objects.filter(pk=r.pk).update(
                 created_at=timezone.now() - timedelta(days=created_delta)
             )
@@ -359,7 +359,7 @@ class Command(BaseCommand):
             total_amount=Decimal('370000'), created_by=purchaser
         )
 
-        # 2 — Аварийная, ordered
+        # 2 — аварийная заявка с размещенным заказом
         req2 = make_request('ЗК-2025-0002', initiator, 'Буровой цех №3',
                             3, 'emergency', 'ordered',
                             'Аварийный выход из строя ЭЦН на скважине №47, срочная замена.',
@@ -490,7 +490,7 @@ class Command(BaseCommand):
             total_amount=Decimal('120250'), created_by=purchaser
         )
 
-        # 11 — ordered, 2 мес. назад
+        # 11 — заявка с размещенным заказом, два месяца назад
         req11 = make_request('ЗК-2025-0011', initiator, 'Электрослужба',
                              20, 'planned', 'ordered',
                              'Закупка кабеля ЭЦН для запасного фонда.',
@@ -506,7 +506,7 @@ class Command(BaseCommand):
             status='confirmed', total_amount=Decimal('4995000'), created_by=purchaser
         )
 
-        # 12 — submitted, прошлый месяц
+        # 12 — заявка на рассмотрении, прошлый месяц
         req12 = make_request('ЗК-2025-0012', initiator, 'Цех нефтеподготовки',
                              40, 'planned', 'submitted',
                              'Закупка метанола для антигидратной обработки скважин.',
