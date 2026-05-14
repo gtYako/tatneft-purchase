@@ -18,9 +18,26 @@
       /* Sidebar */
       .sidebar {
         min-height: 100vh;
+        height: 100vh;
         background: linear-gradient(180deg, #111827 0%, #1f2937 100%);
         width: 240px;
         flex-shrink: 0;
+        position: sticky;
+        top: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255,255,255,0.22) transparent;
+      }
+      .sidebar::-webkit-scrollbar { width: 8px; }
+      .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.22); border-radius: 999px; }
+      .sidebar > .mt-auto {
+        position: sticky;
+        bottom: 0;
+        background: linear-gradient(180deg, rgba(31,41,55,0.92) 0%, #1f2937 32%, #1f2937 100%);
+        border-top: 1px solid rgba(255,255,255,0.08);
+        padding-top: 0.75rem;
+        margin-top: 1rem !important;
       }
       .sidebar .nav-link {
         color: rgba(255,255,255,0.6);
