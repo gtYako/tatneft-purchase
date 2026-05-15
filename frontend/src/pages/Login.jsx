@@ -46,7 +46,7 @@ export default function Login() {
               <label className="form-label fw-semibold small">Логин</label>
               <input
                 type="text" className="form-control" autoFocus required
-                placeholder="admin / initiator / purchaser / analyst / manager"
+                placeholder="Введите логин"
                 value={form.username}
                 onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
               />
@@ -55,7 +55,7 @@ export default function Login() {
               <label className="form-label fw-semibold small">Пароль</label>
               <input
                 type="password" className="form-control" required
-                placeholder="demo1234"
+                placeholder="Введите пароль"
                 value={form.password}
                 onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
               />
@@ -67,25 +67,6 @@ export default function Login() {
               }
             </button>
           </form>
-
-          <div className="mt-4 p-3 rounded small" style={{ background: '#f0f4ff' }}>
-            <div className="fw-semibold mb-1 text-muted">Тестовые аккаунты (пароль: demo1234)</div>
-            {[
-              ['admin', 'Администратор'],
-              ['purchaser', 'Закупщик'],
-              ['initiator', 'Инициатор'],
-              ['analyst', 'Аналитик'],
-              ['manager', 'Руководитель'],
-            ].map(([u, label]) => (
-              <div key={u} className="d-flex justify-content-between">
-                <code className="text-primary" style={{ cursor: 'pointer' }}
-                  onClick={() => setForm({ username: u, password: 'demo1234' })}>
-                  {u}
-                </code>
-                <span className="text-muted">{label}</span>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </div>
