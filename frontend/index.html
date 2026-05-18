@@ -79,6 +79,17 @@
       /* Таблицы */
       .table th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: #9ca3af; font-weight: 600; }
       .table-hover tbody tr:hover { background-color: #f9fafb; }
+      .catalog-table-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .catalog-material-table {
+        min-width: 920px;
+      }
+      .catalog-material-table th:last-child,
+      .catalog-material-table td:last-child {
+        white-space: nowrap;
+      }
 
       /* Индикаторы критичности материалов */
       .badge-criticality-critical { background-color: #ef4444; }
@@ -174,7 +185,9 @@
         .main-content { width: 100%; }
         .p-4 { padding: 1rem !important; }
         .page-title { font-size: 1.1rem; }
-        .card-body .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .catalog-material-table {
+          min-width: 860px;
+        }
       }
 
       @media (max-width: 600px) {

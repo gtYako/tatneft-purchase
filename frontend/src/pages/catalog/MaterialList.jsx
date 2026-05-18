@@ -79,7 +79,8 @@ export default function MaterialList() {
             </div>
           ) : (
             <>
-              <table className="table table-hover mb-0">
+              <div className="catalog-table-scroll table-responsive">
+              <table className="table table-hover mb-0 catalog-material-table">
                 <thead className="table-light">
                   <tr>
                     <th className="ps-3">Код</th>
@@ -128,6 +129,7 @@ export default function MaterialList() {
                   ))}
                 </tbody>
               </table>
+              </div>
               {totalPages > 1 && (
                 <div className="d-flex justify-content-center py-3 gap-2">
                   <button className="btn btn-sm btn-outline-secondary" disabled={page <= 1}
