@@ -12,5 +12,6 @@ dist/
 /package-lock.json
 !frontend/package-lock.json
 
-.claude/worktrees/
+.worktrees/
+.local-tools/
 npm-debug.log*

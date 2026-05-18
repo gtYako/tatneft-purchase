@@ -59,7 +59,8 @@ export default function SupplierList() {
               <i className="bi bi-building display-4 d-block mb-2"></i>Поставщики не найдены
             </div>
           ) : (
-            <table className="table table-hover mb-0">
+            <div className="data-table-scroll table-responsive">
+            <table className="table table-hover mb-0 data-table-wide">
               <thead className="table-light">
                 <tr>
                   <th className="ps-3">Наименование</th>
@@ -103,6 +104,7 @@ export default function SupplierList() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>

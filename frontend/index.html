@@ -79,16 +79,25 @@
       /* Таблицы */
       .table th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: #9ca3af; font-weight: 600; }
       .table-hover tbody tr:hover { background-color: #f9fafb; }
-      .catalog-table-scroll {
+      .data-table-scroll {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
       }
-      .catalog-material-table {
+      .data-table-wide {
         min-width: 920px;
       }
-      .catalog-material-table th:last-child,
-      .catalog-material-table td:last-child {
+      .data-table-wide th:last-child,
+      .data-table-wide td:last-child {
         white-space: nowrap;
+      }
+      @supports selector(:has(*)) {
+        .card-body.p-0:has(> table) {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        .card-body.p-0:has(> table) > table {
+          min-width: 860px;
+        }
       }
 
       /* Индикаторы критичности материалов */
@@ -185,8 +194,18 @@
         .main-content { width: 100%; }
         .p-4 { padding: 1rem !important; }
         .page-title { font-size: 1.1rem; }
-        .catalog-material-table {
+        .data-table-wide {
           min-width: 860px;
+        }
+        .card-body.py-2.d-flex {
+          flex-wrap: wrap;
+        }
+        .card-body.py-2.d-flex > .input-group {
+          min-width: 240px;
+        }
+        .card-body.py-2.d-flex > .form-select {
+          width: 100% !important;
+          max-width: 260px;
         }
       }
 
@@ -194,6 +213,12 @@
         .stat-card .card-body { padding: 0.75rem; }
         .stat-card .card-body > div:first-child { font-size: 1.4rem !important; }
         .topbar { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+        .card-body.py-2.d-flex > .input-group,
+        .card-body.py-2.d-flex > .form-select,
+        .card-body.py-2.d-flex > .form-check {
+          width: 100% !important;
+          max-width: none;
+        }
       }
     </style>
   </head>

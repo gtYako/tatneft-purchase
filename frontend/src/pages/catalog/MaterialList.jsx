@@ -79,8 +79,8 @@ export default function MaterialList() {
             </div>
           ) : (
             <>
-              <div className="catalog-table-scroll table-responsive">
-              <table className="table table-hover mb-0 catalog-material-table">
+              <div className="data-table-scroll table-responsive">
+              <table className="table table-hover mb-0 data-table-wide">
                 <thead className="table-light">
                   <tr>
                     <th className="ps-3">Код</th>
