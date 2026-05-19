@@ -25,13 +25,34 @@ jobs:
           script: |
             set -e
             REPO=/opt/oil_procurement
+            BACKUP_ROOT=/opt/oil_procurement_backups
+            TS=$(date +%Y%m%d-%H%M%S)
             OWNER=$(stat -c '%U' $REPO)
             echo "==> Repo owner: $OWNER"
             sudo -u $OWNER git -C $REPO config --global --add safe.directory $REPO
-            echo "==> Pulling latest code..."
-            sudo -u $OWNER git -C $REPO pull origin main
+
+            echo "==> Saving local server changes if present..."
+            sudo mkdir -p $BACKUP_ROOT
+            sudo chown $OWNER:$OWNER $BACKUP_ROOT
+            if ! sudo -u $OWNER git -C $REPO diff --quiet || [ -n "$(sudo -u $OWNER git -C $REPO ls-files --others --exclude-standard)" ]; then
+              BACKUP_DIR=$BACKUP_ROOT/$TS
+              sudo -u $OWNER mkdir -p $BACKUP_DIR
+              sudo -u $OWNER git -C $REPO status --short | sudo -u $OWNER tee $BACKUP_DIR/git-status.txt > /dev/null
+              sudo -u $OWNER git -C $REPO diff | sudo -u $OWNER tee $BACKUP_DIR/local-changes.patch > /dev/null || true
+              sudo -u $OWNER git -C $REPO ls-files --others --exclude-standard | sudo -u $OWNER tee $BACKUP_DIR/untracked-files.txt > /dev/null
+              echo "==> Local changes saved to $BACKUP_DIR"
+            else
+              echo "==> No local server changes found."
+            fi
+
+            echo "==> Fetching latest code..."
+            sudo -u $OWNER git -C $REPO fetch origin main
+            CHANGED_FILES=$(sudo -u $OWNER git -C $REPO diff --name-only HEAD origin/main || true)
+            echo "==> Updating working tree to origin/main..."
+            sudo -u $OWNER git -C $REPO reset --hard origin/main
+
             echo "==> Checking if dependencies changed..."
-            if sudo -u $OWNER git -C $REPO diff HEAD~1 HEAD --name-only | grep -qE 'requirements|Dockerfile|docker-compose|frontend/'; then
+            if echo "$CHANGED_FILES" | grep -qE 'requirements|Dockerfile|docker-compose|frontend/'; then
               echo "==> Rebuilding containers..."
               docker compose -f $REPO/docker-compose.yml up -d --build
             else
