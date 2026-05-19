@@ -11,6 +11,7 @@ export default function ShortageReport() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Backend сразу возвращает две выборки: позиции к дозакупке и склад ниже минимального запаса.
     axios.get('/api/analytics/shortage/').then(r => setData(r.data)).finally(() => setLoading(false))
   }, [])
 
@@ -20,6 +21,7 @@ export default function ShortageReport() {
     const lowStocks = data.low_stocks || []
     const wb = XLSX.utils.book_new()
 
+    // В Excel делаем три листа: сводка, позиции к закупке и отдельный список ниже минимума.
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
       ['Отчёт о дефиците'],
       ['Дата формирования', new Date().toLocaleString('ru-RU')],
@@ -28,6 +30,7 @@ export default function ShortageReport() {
     ]), 'Сводка')
 
     const purchaseRows = shortageItems.map(item => ({
+      // Эти строки считаются по активным заявкам: сколько запросили, сколько есть, сколько надо докупить.
       'Заявка': item.request_number || '',
       'Материал': `${item.material_code || ''} ${item.material_name || ''}`.trim(),
       'Тип': item.request?.criticality === 'emergency' ? 'Аварийная' : 'Плановая',
@@ -45,6 +48,7 @@ export default function ShortageReport() {
     XLSX.utils.book_append_sheet(wb, purchaseSheet, 'К закупке')
 
     const lowStockRows = lowStocks.map(s => ({
+      // Эти строки не зависят от заявок: материал попал сюда из-за qty_available < min_stock.
       'Код': s.material_code || '',
       'Материал': s.material_name || '',
       'Место хранения': s.location || '',

@@ -14,6 +14,7 @@ const RISK_COLOR = { low: 'success', medium: 'warning', high: 'danger' }
 const RISK_LABEL = { low: 'Низкий риск', medium: 'Средний риск', high: 'Высокий риск' }
 
 const money = value => value == null ? '—' : Number(value).toLocaleString('ru-RU')
+// PDF строится через SVG, поэтому текст перед вставкой нужно экранировать.
 const xmlEscape = value => String(value ?? '').replace(/[<>&'"]/g, ch => ({
   '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;',
 }[ch]))
@@ -34,6 +35,7 @@ const wrapText = (text, maxChars) => {
   return lines
 }
 const svgToPng = (svgText, width, height) => new Promise((resolve, reject) => {
+  // jsPDF удобнее принимает PNG, поэтому SVG-отчет сначала рисуется на canvas.
   const img = new Image()
   const blob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' })
   const url = URL.createObjectURL(blob)
@@ -58,6 +60,7 @@ function AiCard({ materialId, onAiChange }) {
   const [error, setError] = useState('')
 
   const explain = async () => {
+    // Frontend отправляет только material_id: историю цен и prompt для GigaChat собирает backend.
     setLoading(true)
     setError('')
     setAi(null)
@@ -158,6 +161,7 @@ export default function PriceDynamics() {
   const chartRef = useRef(null)
 
   const load = (matId) => {
+    // API возвращает price_data, уже сгруппированный по поставщикам для графика.
     setLoading(true)
     axios.get('/api/analytics/price-dynamics/', { params: { material: matId } })
       .then(r => setApiData(r.data))
@@ -175,6 +179,7 @@ export default function PriceDynamics() {
   }
 
   const { price_data = {}, materials = [] } = apiData || {}
+  // Recharts нужен массив строк: одна дата и отдельная цена по каждому поставщику.
   const suppliers = Object.keys(price_data)
   const allDates = new Set()
   suppliers.forEach(s => price_data[s].forEach(p => allDates.add(p.date)))
@@ -203,6 +208,7 @@ export default function PriceDynamics() {
     if (!apiData?.selected_material || !chartData.length) return
     setExporting(true)
     try {
+      // Берем текущий SVG-график Recharts и встраиваем его в PDF-отчет.
       const chartSvg = chartRef.current?.querySelector('svg')
       const chartSvgText = chartSvg ? new XMLSerializer().serializeToString(chartSvg) : ''
       const chartDataUrl = chartSvgText

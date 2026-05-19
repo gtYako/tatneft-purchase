@@ -8,6 +8,8 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // При открытии приложения сначала получаем CSRF-cookie, потом проверяем текущую Django-сессию.
+    // Если /me/ вернул ошибку, пользователь считается неавторизованным.
     axios.get('/api/auth/csrf/').then(() =>
       axios.get('/api/auth/me/')
         .then(r => setUser(r.data))
@@ -17,6 +19,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   const login = async (username, password) => {
+    // CSRF нужен для POST-запроса логина, потому что backend использует cookie-сессию Django.
     await axios.get('/api/auth/csrf/')
     const r = await axios.post('/api/auth/login/', { username, password })
     setUser(r.data)
@@ -24,6 +27,7 @@ export function AuthProvider({ children }) {
   }
 
   const logout = async () => {
+    // Logout инвалидирует серверную сессию, после чего локально очищаем пользователя.
     await axios.post('/api/auth/logout/')
     setUser(null)
   }

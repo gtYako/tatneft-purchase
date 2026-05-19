@@ -33,6 +33,8 @@ import MonitoringPage from './pages/monitoring/MonitoringPage.jsx'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
+  // Общая защита приватных страниц: пока проверяем сессию, показываем loader,
+  // после проверки либо пускаем в приложение, либо отправляем на страницу входа.
   if (loading) return (
     <div className="spinner-center">
       <div className="spinner-border text-primary" role="status" />
@@ -83,6 +85,7 @@ function AccessDenied({ roles = [] }) {
 
 function RoleRoute({ roles, children }) {
   const { user } = useAuth()
+  // Клиентская проверка роли нужна для UX. Backend все равно повторно проверяет права в API.
   if (!roles || roles.includes(user?.role)) return children
   return <AccessDenied roles={roles} />
 }
@@ -103,6 +106,7 @@ function AppRoutes() {
         <PrivateRoute>
           <Layout>
             <Routes>
+              {/* Внутренние маршруты сгруппированы по бизнес-разделам; RoleRoute скрывает чужие страницы. */}
               <Route path="/" element={<Dashboard />} />
 
               <Route path="/catalog" element={<MaterialList />} />

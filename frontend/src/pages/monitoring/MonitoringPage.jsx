@@ -7,6 +7,7 @@ function TabSummary({ summary, onRefresh }) {
   const [msg, setMsg] = useState('')
 
   const handleRun = async () => {
+    // Запуск парсинга выполняется на backend в отдельном потоке, поэтому UI только показывает старт и обновляет сводку позже.
     setRunning(true)
     setMsg('')
     try {
@@ -112,6 +113,7 @@ function TabSources() {
   const [toggling, setToggling] = useState(null)
 
   const load = useCallback(() => {
+    // Источники парсинга управляются отдельно: выключенный источник не участвует в следующем запуске.
     setLoading(true)
     axios.get('/api/parsing-sources/', { params: { page_size: 50 } })
       .then(r => setData(r.data)).finally(() => setLoading(false))
@@ -120,6 +122,7 @@ function TabSources() {
   useEffect(() => { load() }, [load])
 
   const toggle = async (id) => {
+    // Переключатель не удаляет источник, а только меняет is_active.
     setToggling(id)
     await axios.post(`/api/parsing-sources/${id}/toggle/`).catch(() => {})
     setToggling(null)

@@ -33,11 +33,13 @@ export default function RequestDetail() {
   const [msgType, setMsgType] = useState('success')
 
   const load = () => {
+    // Детальная карточка заявки приходит одним объектом: шапка, позиции, суммы и разрешенные действия.
     axios.get(`/api/requests/${pk}/`).then(r => setReq(r.data)).finally(() => setLoading(false))
   }
 
   useEffect(() => {
     load()
+    // Список материалов нужен только для формы добавления новой позиции в заявку.
     axios.get('/api/materials/all/').then(r => setMaterials(r.data)).catch(() => {})
   }, [pk])
 
@@ -47,6 +49,7 @@ export default function RequestDetail() {
   }
 
   const doAction = async (url, body = {}, method = 'post') => {
+    // Общий helper для workflow-кнопок: отправить действие, перечитать заявку и показать сообщение.
     setActionLoading(url)
     try {
       await axios[method](url, body)
@@ -90,6 +93,7 @@ export default function RequestDetail() {
   if (!req) return <div className="alert alert-danger">Заявка не найдена</div>
 
   const isDraft = req.status === 'draft'
+  // Права на кнопки считаются из статуса заявки, роли пользователя и флагов, которые вернул backend.
   const canEdit = isDraft && (user?.role !== 'initiator' || req.requester === user?.id)
   const canSubmit = req.can_be_submitted
   const canApprove = req.can_be_approved && user?.can_approve

@@ -36,12 +36,14 @@ export default function UserList() {
   useEffect(() => { load() }, [])
 
   const filtered = users.filter(u =>
+    // Поиск локальный: список пользователей уже загружен, поэтому не дергаем API на каждый символ.
     u.username?.toLowerCase().includes(search.toLowerCase()) ||
     u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
     u.email?.toLowerCase().includes(search.toLowerCase())
   )
 
   const toggleActive = async (u) => {
+    // Стоп-кнопка не удаляет пользователя, а только меняет is_active через PATCH.
     setActionId(u.id)
     try {
       await axios.patch(`/api/admin/users/${u.id}/`, { is_active: !u.is_active })
@@ -54,6 +56,7 @@ export default function UserList() {
   }
 
   const deleteUser = async (u) => {
+    // Удаление может превратиться в деактивацию на backend, если пользователь связан с документами.
     const label = u.full_name || u.username
     if (!window.confirm(`Убрать пользователя "${label}"?`)) return
     setActionId(u.id)

@@ -22,6 +22,7 @@ export default function Layout({ children }) {
     navigate('/login')
   }
 
+  // Эти флаги управляют только видимостью пунктов меню. Реальные права дополнительно проверяются в App.jsx и backend API.
   const canSeeAnalytics = ['analyst', 'manager', 'admin', 'purchaser'].includes(user?.role)
   const canManageCatalog   = ['admin', 'purchaser'].includes(user?.role)
   const canManageSuppliers = ['admin', 'purchaser'].includes(user?.role)
@@ -30,6 +31,7 @@ export default function Layout({ children }) {
 
   return (
     <div className="d-flex" style={{ minHeight: '100vh' }}>
+      {/* Overlay закрывает мобильное боковое меню при клике вне панели. */}
       <div className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`} onClick={closeSidebar} />
 
       <nav className={`sidebar d-flex flex-column py-3 ${sidebarOpen ? 'sidebar-open' : ''}`}>
