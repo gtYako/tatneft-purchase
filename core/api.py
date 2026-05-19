@@ -976,10 +976,10 @@ def audit_log_list(request):
     if request.user.role != 'admin':
         return Response({'detail': 'Нет прав'}, status=403)
     logs = AuditLog.objects.select_related('user').order_by('-timestamp')
-    q = request.GET.get('q', '')
+    q = request.GET.get('q', '') or request.GET.get('search', '')
     model_f = request.GET.get('model', '')
     if q:
-        logs = logs.filter(Q(action__icontains=q) | Q(object_repr__icontains=q))
+        logs = logs.filter(action__icontains=q)
     if model_f:
         logs = logs.filter(model_name=model_f)
     pag = StandardPagination()

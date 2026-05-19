@@ -10,7 +10,7 @@ export default function AuditLog() {
 
   const load = (p = 1, q = '') => {
     setLoading(true)
-    axios.get('/api/admin/audit/', { params: { page: p, search: q } })
+    axios.get('/api/admin/audit/', { params: { page: p, q: q.trim() } })
       .then(r => {
         setLogs(r.data.results || r.data)
         setTotal(r.data.count || 0)
@@ -46,10 +46,14 @@ export default function AuditLog() {
       <div className="card mb-3">
         <div className="card-body py-2">
           <form onSubmit={handleSearch} className="d-flex gap-2">
-            <input className="form-control form-control-sm" style={{ maxWidth: 380 }}
-              placeholder="Поиск по пользователю или описанию..."
-              value={search} onChange={e => setSearch(e.target.value)} />
-            <button type="submit" className="btn btn-sm btn-outline-primary">
+            <input
+              className="form-control form-control-sm"
+              style={{ maxWidth: 380 }}
+              placeholder="Поиск по действию..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            <button type="submit" className="btn btn-sm btn-outline-primary" aria-label="Найти">
               <i className="bi bi-search"></i>
             </button>
           </form>
@@ -66,7 +70,7 @@ export default function AuditLog() {
                 <tr>
                   <th className="ps-3" style={{ width: 160 }}>Время</th>
                   <th style={{ width: 120 }}>Пользователь</th>
-                  <th style={{ width: 110 }}>Действие</th>
+                  <th style={{ width: 180 }}>Действие</th>
                   <th>Объект</th>
                   <th className="pe-3">Описание</th>
                 </tr>
@@ -89,8 +93,10 @@ export default function AuditLog() {
                         {log.action || '—'}
                       </span>
                     </td>
-                    <td className="small text-muted">{log.object_type} {log.object_id ? `#${log.object_id}` : ''}</td>
-                    <td className="small pe-3">{log.description || '—'}</td>
+                    <td className="small text-muted">
+                      {log.model_name || '—'} {log.object_id ? `#${log.object_id}` : ''}
+                    </td>
+                    <td className="small pe-3">{log.object_repr || log.details || '—'}</td>
                   </tr>
                 ))}
               </tbody>
