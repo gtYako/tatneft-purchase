@@ -53,12 +53,22 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 class UserEditSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True, min_length=4)
+
     class Meta:
         model = CustomUser
         fields = [
             'username', 'first_name', 'last_name',
-            'email', 'role', 'department', 'position', 'is_active',
+            'email', 'role', 'department', 'position', 'is_active', 'password',
         ]
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', '')
+        user = super().update(instance, validated_data)
+        if password:
+            user.set_password(password)
+            user.save(update_fields=['password'])
+        return user
 
 
 class CategorySerializer(serializers.ModelSerializer):

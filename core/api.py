@@ -1,4 +1,5 @@
 from django.contrib.auth import authenticate, login, logout
+from django.db.models.deletion import ProtectedError
 from django.db.models import Q, Count
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
@@ -952,7 +953,7 @@ def user_list_create(request):
         return Response(ser.errors, status=400)
 
 
-@api_view(['GET', 'PUT'])
+@api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
 def user_detail(request, pk):
     if request.user.role != 'admin':
         return Response({'detail': 'Нет прав'}, status=403)
@@ -962,13 +963,30 @@ def user_detail(request, pk):
         return Response({'detail': 'Не найдено'}, status=404)
     if request.method == 'GET':
         return Response(UserSerializer(user_obj).data)
-    else:
-        ser = UserEditSerializer(user_obj, data=request.data)
+
+    if request.method in ('PUT', 'PATCH'):
+        ser = UserEditSerializer(user_obj, data=request.data, partial=request.method == 'PATCH')
         if ser.is_valid():
             ser.save()
             log_action(request, 'Изменён пользователь', user_obj)
             return Response(UserSerializer(user_obj).data)
         return Response(ser.errors, status=400)
+
+    if request.method == 'DELETE':
+        if user_obj.pk == request.user.pk:
+            return Response({'detail': 'Нельзя удалить свою учетную запись'}, status=400)
+        username = user_obj.get_full_name_or_username()
+        try:
+            user_obj.delete()
+        except ProtectedError:
+            user_obj.is_active = False
+            user_obj.save(update_fields=['is_active'])
+            log_action(request, 'Пользователь деактивирован', user_obj, username)
+            return Response({
+                'detail': 'Пользователь связан с документами, поэтому он деактивирован вместо удаления.'
+            })
+        log_action(request, 'Удалён пользователь', details=username)
+        return Response(status=204)
 
 
 @api_view(['GET'])

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
+import { useAuth } from '../../context/AuthContext.jsx'
 
 const ROLE_LABELS = {
   initiator: 'Инициатор',
@@ -9,6 +10,7 @@ const ROLE_LABELS = {
   manager: 'Руководитель',
   admin: 'Администратор',
 }
+
 const ROLE_COLORS = {
   initiator: 'secondary',
   purchaser: 'primary',
@@ -18,9 +20,11 @@ const ROLE_COLORS = {
 }
 
 export default function UserList() {
+  const { user: currentUser } = useAuth()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [actionId, setActionId] = useState(null)
 
   const load = () => {
     setLoading(true)
@@ -38,11 +42,28 @@ export default function UserList() {
   )
 
   const toggleActive = async (u) => {
+    setActionId(u.id)
     try {
       await axios.patch(`/api/admin/users/${u.id}/`, { is_active: !u.is_active })
       load()
-    } catch {
-      alert('Ошибка изменения статуса')
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Ошибка изменения статуса')
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  const deleteUser = async (u) => {
+    const label = u.full_name || u.username
+    if (!window.confirm(`Убрать пользователя "${label}"?`)) return
+    setActionId(u.id)
+    try {
+      await axios.delete(`/api/admin/users/${u.id}/`)
+      load()
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Ошибка удаления пользователя')
+    } finally {
+      setActionId(null)
     }
   }
 
@@ -57,9 +78,13 @@ export default function UserList() {
 
       <div className="card mb-3">
         <div className="card-body py-2">
-          <input className="form-control form-control-sm" style={{ maxWidth: 320 }}
+          <input
+            className="form-control form-control-sm"
+            style={{ maxWidth: 320 }}
             placeholder="Поиск по логину / ФИО / email..."
-            value={search} onChange={e => setSearch(e.target.value)} />
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
         </div>
       </div>
 
@@ -83,34 +108,55 @@ export default function UserList() {
                 {filtered.length === 0 && (
                   <tr><td colSpan={6} className="text-center text-muted py-4">Нет пользователей</td></tr>
                 )}
-                {filtered.map(u => (
-                  <tr key={u.id}>
-                    <td className="ps-3 fw-semibold small">{u.username}</td>
-                    <td className="small">{u.full_name || '—'}</td>
-                    <td className="small text-muted">{u.email || '—'}</td>
-                    <td className="text-center">
-                      <span className={`badge bg-${ROLE_COLORS[u.role] || 'secondary'}`}>
-                        {ROLE_LABELS[u.role] || u.role}
-                      </span>
-                    </td>
-                    <td className="text-center">
-                      <span className={`badge bg-${u.is_active ? 'success' : 'secondary'}`}>
-                        {u.is_active ? 'Активен' : 'Неактивен'}
-                      </span>
-                    </td>
-                    <td className="text-end pe-3">
-                      <div className="d-flex gap-2 justify-content-end">
-                        <Link to={`/admin/users/${u.id}/edit`} className="btn btn-outline-primary btn-sm">
-                          <i className="bi bi-pencil"></i>
-                        </Link>
-                        <button className={`btn btn-sm btn-outline-${u.is_active ? 'warning' : 'success'}`}
-                          onClick={() => toggleActive(u)} title={u.is_active ? 'Деактивировать' : 'Активировать'}>
-                          <i className={`bi bi-${u.is_active ? 'pause-circle' : 'play-circle'}`}></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {filtered.map(u => {
+                  const isSelf = currentUser?.id === u.id
+                  const busy = actionId === u.id
+
+                  return (
+                    <tr key={u.id}>
+                      <td className="ps-3 fw-semibold small">{u.username}</td>
+                      <td className="small">{u.full_name || '—'}</td>
+                      <td className="small text-muted">{u.email || '—'}</td>
+                      <td className="text-center">
+                        <span className={`badge bg-${ROLE_COLORS[u.role] || 'secondary'}`}>
+                          {ROLE_LABELS[u.role] || u.role}
+                        </span>
+                      </td>
+                      <td className="text-center">
+                        <span className={`badge bg-${u.is_active ? 'success' : 'secondary'}`}>
+                          {u.is_active ? 'Активен' : 'Неактивен'}
+                        </span>
+                      </td>
+                      <td className="text-end pe-3">
+                        <div className="d-flex gap-2 justify-content-end">
+                          <Link to={`/admin/users/${u.id}/edit`} className="btn btn-outline-primary btn-sm" title="Редактировать">
+                            <i className="bi bi-pencil"></i>
+                          </Link>
+                          <button
+                            className={`btn btn-sm btn-outline-${u.is_active ? 'warning' : 'success'}`}
+                            onClick={() => toggleActive(u)}
+                            disabled={busy || isSelf}
+                            title={u.is_active ? 'Деактивировать' : 'Активировать'}
+                          >
+                            {busy ? (
+                              <span className="spinner-border spinner-border-sm" />
+                            ) : (
+                              <i className={`bi bi-${u.is_active ? 'pause-circle' : 'play-circle'}`}></i>
+                            )}
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => deleteUser(u)}
+                            disabled={busy || isSelf}
+                            title={isSelf ? 'Нельзя удалить себя' : 'Удалить'}
+                          >
+                            <i className="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           )}
