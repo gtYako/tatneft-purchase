@@ -143,7 +143,69 @@ docker compose logs -f backend
 docker compose logs -f nginx
 ```
 
-## 6. Полезные команды управления
+## 6. Подключение к базе данных через DBeaver
+
+База данных проекта - PostgreSQL в контейнере `db`. Если проект запускается локально через Docker Compose, то для подключения из DBeaver контейнер базы должен быть запущен.
+
+Запустить только базу данных:
+
+```bash
+cd /opt/oil_procurement
+docker compose up -d db
+```
+
+Или запустить весь проект:
+
+```bash
+cd /opt/oil_procurement
+docker compose up -d
+```
+
+Проверить, что контейнер PostgreSQL работает:
+
+```bash
+docker compose ps
+```
+
+Параметры подключения в DBeaver:
+
+```text
+Тип подключения: PostgreSQL
+Host: localhost
+Port: 5432
+Database: oil_procurement
+Username: oil_user
+Password: oil_pass
+```
+
+В `docker-compose.yml` порт базы проброшен так:
+
+```yaml
+ports:
+  - "127.0.0.1:5432:5432"
+```
+
+Это значит, что DBeaver сможет подключиться к базе с той же машины, где запущен Docker. База не открыта наружу для всего интернета, что безопаснее для сервера.
+
+Если база запущена на удаленном сервере, напрямую с домашнего компьютера она обычно не откроется. В этом случае нужен SSH-туннель:
+
+```bash
+ssh -L 5433:127.0.0.1:5432 yako@81.26.184.201
+```
+
+Пока это SSH-подключение открыто, в DBeaver нужно указать:
+
+```text
+Host: localhost
+Port: 5433
+Database: oil_procurement
+Username: oil_user
+Password: oil_pass
+```
+
+Здесь `5433` - локальный порт на компьютере, а `5432` - порт PostgreSQL внутри сервера. Если порт `5433` занят, можно выбрать другой, например `55432`.
+
+## 7. Полезные команды управления
 
 Остановить контейнеры без удаления данных:
 
@@ -211,7 +273,7 @@ docker compose exec backend python manage.py shell
 docker compose exec backend python manage.py seed_data
 ```
 
-## 7. Команды для парсинга и мониторинга поставщиков
+## 8. Команды для парсинга и мониторинга поставщиков
 
 В проекте есть management-команды для работы с источниками поставщиков.
 
@@ -245,7 +307,7 @@ docker compose exec backend python manage.py discover_supplier_sites
 docker compose exec backend python manage.py import_supplier_candidates
 ```
 
-## 8. Обновление проекта на сервере из GitHub
+## 9. Обновление проекта на сервере из GitHub
 
 Перед обновлением полезно сохранить текущий коммит, чтобы можно было быстро откатиться:
 
@@ -283,7 +345,7 @@ docker compose logs --tail=100 backend
 docker compose logs --tail=100 nginx
 ```
 
-## 9. Откат к предыдущему варианту
+## 10. Откат к предыдущему варианту
 
 Посмотреть историю коммитов:
 
@@ -319,7 +381,7 @@ git push origin main
 
 После push в `main` сработает CI/CD.
 
-## 10. Как работает CI/CD
+## 11. Как работает CI/CD
 
 CI/CD описан в файле `.github/workflows/deploy.yml`.
 
@@ -349,7 +411,7 @@ git push origin main
 - `SSH_USER` - пользователь Linux на сервере;
 - `SSH_PRIVATE_KEY` - приватный SSH-ключ для подключения.
 
-## 11. Полный сброс проекта
+## 12. Полный сброс проекта
 
 Эта команда удаляет контейнеры и volumes, включая базу данных PostgreSQL. Использовать только если точно нужно стереть данные.
 
@@ -359,4 +421,3 @@ docker compose up -d --build
 ```
 
 После такого запуска база создастся заново, миграции выполнятся автоматически, а демо-данные загрузятся через `seed_data`, если пользователей еще нет.
-
