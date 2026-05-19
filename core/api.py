@@ -797,6 +797,9 @@ def order_status_update(request, pk):
 
 @api_view(['GET'])
 def analytics_dashboard(request):
+    # Сводная аналитика для главного аналитического дашборда.
+    # Здесь намеренно собираются только агрегаты и короткие списки,
+    # чтобы frontend не тянул все заявки, КП и складские записи целиком.
     if request.user.role not in ('analyst', 'manager', 'admin', 'purchaser'):
         return Response({'detail': 'Нет доступа'}, status=403)
 
@@ -824,6 +827,9 @@ def analytics_dashboard(request):
 
 @api_view(['GET'])
 def analytics_price_dynamics(request):
+    # Данные для страницы "Динамика цен".
+    # Ответ специально сгруппирован по поставщикам:
+    # frontend превращает этот словарь в строки графика Recharts и таблицу.
     if request.user.role not in ('analyst', 'manager', 'admin', 'purchaser'):
         return Response({'detail': 'Нет доступа'}, status=403)
     materials = Material.objects.filter(is_active=True, price_quotes__isnull=False).distinct().order_by('name')
@@ -850,6 +856,10 @@ def analytics_price_dynamics(request):
 
 @api_view(['GET'])
 def analytics_shortage(request):
+    # Отчет о дефиците состоит из двух разных источников:
+    # 1) позиции активных заявок, где qty_to_purchase > 0;
+    # 2) складские остатки, у которых доступное количество ниже минимума.
+    # Поэтому frontend получает два массива и выгружает их в разные листы Excel.
     if request.user.role not in ('analyst', 'manager', 'admin', 'purchaser'):
         return Response({'detail': 'Нет доступа'}, status=403)
     shortage_items = RequestItem.objects.filter(
@@ -1099,6 +1109,8 @@ def parsing_runs_list(request):
 @api_view(['GET'])
 def monitoring_summary(request):
     """GET /api/monitoring/summary/ — сводка по модулю мониторинга."""
+    # Мониторинг поставщиков доступен только администратору:
+    # модуль может запускать парсинг внешних сайтов и менять список источников.
     denied = require_admin(request)
     if denied:
         return denied
@@ -1133,6 +1145,9 @@ def parsing_source_toggle(request, pk):
 @api_view(['POST'])
 def supplier_candidate_approve(request, pk):
     """POST /api/supplier-candidates/<pk>/approve/ — одобрить кандидата."""
+    # Кандидат превращается в обычного Supplier, а найденные каталожные URL
+    # добавляются как ParsingSource. Источники создаются выключенными,
+    # чтобы администратор мог проверить их перед регулярным парсингом.
     denied = require_admin(request)
     if denied:
         return denied
@@ -1183,6 +1198,9 @@ def supplier_candidate_reject(request, pk):
 @api_view(['POST'])
 def run_parsing(request):
     """POST /api/monitoring/run-parsing/ — запустить парсинг из UI."""
+    # Парсинг запускается в отдельном daemon-thread, чтобы HTTP-запрос
+    # быстро вернул "started" и не держал браузер до окончания обхода сайтов.
+    # Сама логика парсинга живет в management-команде parse_supplier_prices.
     denied = require_admin(request)
     if denied:
         return denied
@@ -1207,6 +1225,9 @@ def ai_explain_prices(request):
     """POST /api/ai/explain-prices/ — объяснить динамику цен через GPT."""
     from django.conf import settings
 
+    # Endpoint вызывается со страницы динамики цен. На вход нужен только material_id:
+    # историю КП backend собирает сам, чтобы пользователь не мог подменить данные
+    # для GigaChat и получить анализ не по тем ценам, которые есть в базе.
     material_id = request.data.get('material_id')
     if not material_id:
         return Response({'detail': 'material_id обязателен'}, status=400)
@@ -1220,7 +1241,9 @@ def ai_explain_prices(request):
     except Material.DoesNotExist:
         return Response({'detail': 'Материал не найден'}, status=404)
 
-    # Собираем историю цен по всем поставщикам
+    # Собираем историю цен по всем поставщикам.
+    # select_related нужен, чтобы не делать отдельный SQL-запрос к Supplier
+    # на каждую строку PriceQuote при формировании prompt.
     quotes = (
         PriceQuote.objects
         .filter(material=material)
@@ -1232,7 +1255,9 @@ def ai_explain_prices(request):
     if not quotes:
         return Response({'detail': 'Нет данных о ценах для этого материала'}, status=400)
 
-    # Формируем текст с данными для GPT
+    # Формируем компактный текст с данными для GigaChat:
+    # дата, поставщик и цена. Этого достаточно для анализа тренда,
+    # но в prompt не уезжают лишние поля из базы.
     lines = []
     for q in quotes:
         lines.append(f"  {q['quote_date']} | {q['supplier__name']} | {q['price']} ₽")
@@ -1262,7 +1287,8 @@ def ai_explain_prices(request):
 
     try:
         import uuid
-        # Получаем временный токен доступа к GigaChat.
+        # Сначала получаем временный OAuth-токен GigaChat по Basic-ключу.
+        # Сам ключ берется из переменной окружения GIGACHAT_AUTH_KEY, а не из кода.
         token_resp = requests.post(
             'https://ngw.devices.sberbank.ru:9443/api/v2/oauth',
             headers={
@@ -1278,6 +1304,7 @@ def ai_explain_prices(request):
         access_token = token_resp.json()['access_token']
 
         # Отправляем подготовленные ценовые данные в GigaChat.
+        # temperature снижена, чтобы ответ был более стабильным и деловым.
         chat_resp = requests.post(
             'https://gigachat.devices.sberbank.ru/api/v1/chat/completions',
             headers={
@@ -1296,6 +1323,8 @@ def ai_explain_prices(request):
         chat_resp.raise_for_status()
         raw = chat_resp.json()['choices'][0]['message']['content'].strip()
         # Убираем markdown-блоки, если модель добавила их вокруг JSON.
+        # Это делает интеграцию устойчивее: frontend ожидает обычный JSON,
+        # а не строку с ```json ... ```.
         if raw.startswith('```'):
             raw = raw.split('```')[1]
             if raw.startswith('json'):
@@ -1305,7 +1334,8 @@ def ai_explain_prices(request):
         result['data_points'] = len(quotes)
         return Response(result)
     except json.JSONDecodeError:
-        # Если модель вернула не JSON, показываем текст как обычный анализ.
+        # Если модель вернула не JSON, не ломаем пользовательский сценарий:
+        # возвращаем raw-текст как analysis и ставим нейтральные значения.
         return Response({
             'analysis': raw,
             'forecast': '',
